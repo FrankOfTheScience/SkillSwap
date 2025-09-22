@@ -1,6 +1,5 @@
 name: .NET CI
 
-# Trigger: push on development
 on:
   push:
     branches:
@@ -11,29 +10,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout of the repo
+      # Checkout del repo
       - uses: actions/checkout@v3
 
-      # 2. Setup .NET 9
+      # Setup .NET 9
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: 9.0.x
 
-      # 3. Restore packages
+      # Restore pacchetti
       - name: Restore dependencies
         run: dotnet restore
 
-      # 4. Build solution
+      # Build solution
       - name: Build
         run: dotnet build --no-restore --configuration Release
 
-      # 5. Test
-      #- name: Test
-      #  run: dotnet test --no-build --verbosity normal
+      # Test (per ora disabilitato)
+      # - name: Test
+      #   run: dotnet test --no-build --verbosity normal
 
-      # 6. Update database EF Core
-      - name: Update Database
-        run: dotnet ef database update --project SkillSwap.Infrastructure --startup-project SkillSwap.Api
-        env:
-          SKILLSWAP_DB_CONNECTION: ${{ secrets.SKILLSWAP_DB_CONNECTION }}
+      # Update database (disabilitato: non abbiamo un DB cloud in CI)
+      # - name: Update Database
+      #   run: dotnet ef database update --project SkillSwap.Infrastructure --startup-project SkillSwap.Api
+      #   env:
+      #     SKILLSWAP_DB_CONNECTION: ${{ secrets.SKILLSWAP_DB_CONNECTION }}
