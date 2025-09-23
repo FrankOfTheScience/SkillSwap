@@ -6,7 +6,7 @@ public class SkillSwapDbContextFactory : IDesignTimeDbContextFactory<SkillSwapDb
     public SkillSwapDbContext CreateDbContext(string[] args)
     {
         var connectionString = Environment.GetEnvironmentVariable("SKILLSWAP_DB_CONNECTION")
-                             ?? "Host=localhost;Port=5432;Database=skillswap;Username=postgres;Password=";
+                             ?? "Host=localhost;Port=5432;Database=skillswap;Username=postgres;Password=demo";
 
         return new SkillSwapDbContext(DbContextOptionsFactory.Create(connectionString));
     }
