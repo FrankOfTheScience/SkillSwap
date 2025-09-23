@@ -32,7 +32,7 @@ builder.Services.AddAutoMapper(typeof(OfferProfile));
 builder.Services.AddValidatorsFromAssemblyContaining<CreateOfferCommandValidator>();
 builder.Services.AddValidatorsFromAssemblyContaining<UpdateOfferCommandValidator>();
 
-
+// Build the app
 var app = builder.Build();
 
 // Register Middleware
