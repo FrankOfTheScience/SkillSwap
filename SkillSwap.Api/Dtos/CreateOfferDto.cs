@@ -1,7 +1,7 @@
-﻿namespace SkillSwap.Domain;
-public class Offer
+﻿namespace SkillSwap.Api.Dtos;
+
+public class CreateOfferDto
 {
-    public int Id { get; set; }
     public required string Title { get; set; }
     public required string Description { get; set; }
     public decimal Price { get; set; }
