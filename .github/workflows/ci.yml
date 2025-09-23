@@ -11,7 +11,8 @@ jobs:
 
     steps:
       # Checkout of the repo
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
 
       # Setup .NET 9
       - name: Setup .NET
