@@ -1,0 +1,22 @@
+#!/bin/sh
+# .githooks/pre-push
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+if [ "$BRANCH" = "development" ]; then
+  echo ">>> REMINDER: When you open the PR to 'staging' apply a label between: patch / minor / major"
+fi
+
+while read local_ref local_sha remote_ref remote_sha
+do
+  case "$remote_ref" in
+    refs/heads/staging)
+      echo ">>> WARNING: You are pushing directly on 'staging'"
+      echo ">>> Advice: Open a PR from 'development' towards 'staging' with the correct label"
+      # To disable direct push decomment next line:
+      # exit 1
+      ;;
+  esac
+done
+
+exit 0
