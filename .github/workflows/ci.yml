@@ -119,16 +119,19 @@ jobs:
       #   run: dotnet ef database update --project ./SkillSwap.Infrastructure --startup-project ./SkillSwap.Api
 
       - name: Push tag
+        env:
+          PAT_TOKEN: ${{ secrets.SKILLSWAP_PAT }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Aggiorna l'URL remoto per usare il token
           git remote set-url origin https://$PAT_TOKEN@github.com/${{ github.repository }}.git
           git tag $NEW_TAG
           git push origin $NEW_TAG
-        env:
-          PAT_TOKEN: ${{ secrets.SKILLSWAP_PAT }}
 
       - name: Update CHANGELOG
+        env:
+          PAT_TOKEN: ${{ secrets.SKILLSWAP_PAT }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -139,6 +142,4 @@ jobs:
           git add CHANGELOG.md
           git commit -m "docs: update changelog for $NEW_TAG [skip ci]" || echo "No changes"
           git push origin staging
-        env:
-          PAT_TOKEN: ${{ secrets.SKILLSWAP_PAT }}
     
