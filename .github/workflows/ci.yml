@@ -81,23 +81,14 @@ jobs:
       - name: Install GitHub CLI
         run: sudo apt-get install -y gh jq
 
-      - name: Authenticate GitHub CLI
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          export GH_TOKEN=$GH_TOKEN
-          gh auth login --with-token
-
       - name: Determine bump type from PR label
-        id: bump
         run: |
-          export GH_TOKEN=$GH_TOKEN
+          export GH_TOKEN=${{ github.token }}
           PR_NUMBER=$(gh pr list --state merged --base staging --json number -L 1 | jq -r '.[0].number')
           BUMP_TYPE=$(gh pr view $PR_NUMBER --json labels -q '.labels[].name' | grep -E 'major|minor|patch' || echo "patch")
           echo "BUMP_TYPE=$BUMP_TYPE" >> $GITHUB_ENV
 
       - name: Calculate next semver
-        id: semver
         run: |
           LAST_TAG=$(git describe --tags --abbrev=0 || echo "v0.0.0")
           IFS='.' read -r MAJOR MINOR PATCH <<<"${LAST_TAG#v}"
@@ -115,7 +106,7 @@ jobs:
 
       - name: Generate release note
         run: |
-          export GH_TOKEN=$GH_TOKEN
+          export GH_TOKEN=${{ github.token }}
           PR_NUMBER=$(gh pr list --state merged --base staging --json number -L 1 | jq -r '.[0].number')
           PR_TITLE=$(gh pr view $PR_NUMBER --json title -q '.title')
           PR_BODY=$(gh pr view $PR_NUMBER --json body -q '.body')
@@ -136,6 +127,7 @@ jobs:
 
       - name: Update CHANGELOG
         run: |
+          export GH_TOKEN=${{ github.token }}
           echo "" >> CHANGELOG.md
           echo "## $NEW_TAG - $(date +%Y-%m-%d)" >> CHANGELOG.md
           cat release_note.md >> CHANGELOG.md
