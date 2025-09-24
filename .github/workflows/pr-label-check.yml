@@ -1,0 +1,30 @@
+name: PR Label Check
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+jobs:
+  require-version-label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR labels
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number
+            });
+
+            const labels = pr.data.labels.map(l => l.name);
+            const allowed = ["major","minor","patch"];
+            const hasAllowed = labels.some(l => allowed.includes(l));
+
+            if (!hasAllowed) {
+              core.setFailed(
+                "This PR must have at least one label among 'major', 'minor', or 'patch' before it can be merged."
+              );
+            }
