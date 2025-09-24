@@ -115,9 +115,16 @@ jobs:
           PR_TITLE=$(gh pr view $PR_NUMBER --json title -q '.title')
           PR_BODY=$(gh pr view $PR_NUMBER --json body -q '.body')
           DATE=$(date +%Y-%m-%d)
-          NOTE="## Release Note ($NEW_TAG)\n\n**PR #$PR_NUMBER** - $PR_TITLE\n\n$PR_BODY\n\nReleased on $DATE"
-          echo "$NOTE" > release_note.md
+          printf "## Release Note (%s)\n\n**PR #%s** - %s\n\n%s\n\nReleased on %s\n" \
+            "$NEW_TAG" "$PR_NUMBER" "$PR_TITLE" "$PR_BODY" "$DATE" > release_note.md
           cat release_note.md
+
+      - name: Create GitHub Release
+        run: |
+          export GH_TOKEN=${{ github.token }}
+          gh release create $NEW_TAG release_note.md \
+            --title "$NEW_TAG" \
+            --notes-file release_note.md
 
       # - name: Apply EF migrations (DISABLED, DB not in cloud yet)
       #   run: dotnet ef database update --project ./SkillSwap.Infrastructure --startup-project ./SkillSwap.Api
