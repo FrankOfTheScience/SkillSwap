@@ -12,8 +12,8 @@ public class GetOffersQueryHandlerTests
     public async Task Handle_Should_Return_AllOffersMapped()
     {
         using var ctx = TestHelper.CreateInMemoryDbContext();
-        ctx.Offers.AddRange(new Offer { Title = "a", Description = "d", Price = 1, CreatedBy = 1 },
-                            new Offer { Title = "b", Description = "d2", Price = 2, CreatedBy = 2 });
+        ctx.Offers.AddRange(new Offer { Title = "a", Description = "d", Price = 1, CreatedBy = Guid.NewGuid() },
+                            new Offer { Title = "b", Description = "d2", Price = 2, CreatedBy = Guid.NewGuid() });
         await ctx.SaveChangesAsync();
 
         var dbSub = Substitute.For<IApplicationDbContext>();

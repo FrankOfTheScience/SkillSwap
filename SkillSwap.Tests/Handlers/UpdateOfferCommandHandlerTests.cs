@@ -12,7 +12,7 @@ public class UpdateOfferCommandHandlerTests
     public async Task Handle_Should_Update_ExistingOffer_And_ReturnDto()
     {
         using var ctx = TestHelper.CreateInMemoryDbContext();
-        var offer = new Offer { Title = "old", Description = "d", Price = 1, CreatedBy = 1 };
+        var offer = new Offer { Title = "old", Description = "d", Price = 1, CreatedBy = Guid.NewGuid() };
         ctx.Offers.Add(offer);
         await ctx.SaveChangesAsync();
 
@@ -24,7 +24,7 @@ public class UpdateOfferCommandHandlerTests
         var mapper = TestHelper.CreateMapper();
         var handler = new UpdateOfferCommandHandler(dbSub, mapper);
 
-        var cmd = new UpdateOfferCommand(offer.Id, "new", "newdesc", 9m, 1);
+        var cmd = new UpdateOfferCommand(offer.Id, "new", "newdesc", 9m, Guid.NewGuid());
 
         var result = await handler.Handle(cmd, CancellationToken.None);
 
@@ -45,7 +45,7 @@ public class UpdateOfferCommandHandlerTests
         var mapper = TestHelper.CreateMapper();
         var handler = new UpdateOfferCommandHandler(dbSub, mapper);
 
-        var result = await handler.Handle(new UpdateOfferCommand(999, "x", "y", 1, 1), CancellationToken.None);
+        var result = await handler.Handle(new UpdateOfferCommand(999, "x", "y", 1, Guid.NewGuid()), CancellationToken.None);
         result.Should().BeNull();
     }
 }
