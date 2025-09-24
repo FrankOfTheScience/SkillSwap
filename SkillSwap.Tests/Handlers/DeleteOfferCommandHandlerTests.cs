@@ -12,7 +12,7 @@ public class DeleteOfferCommandHandlerTests
     public async Task Handle_Should_DeleteExistingOffer_And_ReturnTrue()
     {
         using var ctx = TestHelper.CreateInMemoryDbContext();
-        var offer = new Offer { Title = "todel", Description = "d", Price = 1, CreatedBy = 1 };
+        var offer = new Offer { Title = "todel", Description = "d", Price = 1, CreatedBy = Guid.NewGuid() };
         ctx.Offers.Add(offer);
         await ctx.SaveChangesAsync();
 

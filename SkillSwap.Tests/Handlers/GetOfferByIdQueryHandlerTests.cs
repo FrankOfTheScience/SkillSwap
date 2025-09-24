@@ -12,7 +12,7 @@ public class GetOfferByIdQueryHandlerTests
     public async Task Handle_Should_ReturnOfferDto_WhenFound()
     {
         using var ctx = TestHelper.CreateInMemoryDbContext();
-        var offer = new Offer { Title = "uno", Description = "x", Price = 5, CreatedBy = 1 };
+        var offer = new Offer { Title = "uno", Description = "x", Price = 5, CreatedBy = Guid.NewGuid() };
         ctx.Offers.Add(offer);
         await ctx.SaveChangesAsync();
 

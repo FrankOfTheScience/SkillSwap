@@ -20,7 +20,7 @@ public class CreateOfferCommandHandlerTests
 
         var handler = new CreateOfferCommandHandler(dbSub);
 
-        var cmd = new CreateOfferCommand("titolo", "desc", 10m, 1);
+        var cmd = new CreateOfferCommand("titolo", "desc", 10m, Guid.NewGuid());
 
         var id = await handler.Handle(cmd, CancellationToken.None);
 
