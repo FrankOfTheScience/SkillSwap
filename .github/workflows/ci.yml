@@ -31,13 +31,18 @@ jobs:
         run: dotnet build --no-restore --configuration Release
 
       - name: Test with coverage
-        run: dotnet test --no-build --configuration Release /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+        run: |
+          mkdir -p TestResults
+          dotnet test --no-build --configuration Release \
+            /p:CollectCoverage=true \
+            /p:CoverletOutputFormat=opencover \
+            /p:CoverletOutput=../TestResults/coverage.opencover.xml
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: "**/coverage.opencover.xml"
+          path: TestResults/coverage.opencover.xml
 
   staging-release:
     if: github.ref == 'refs/heads/staging'
@@ -75,6 +80,8 @@ jobs:
 
       - name: Determine bump type from PR label
         id: bump
+        env:
+          GH_TOKEN: ${{ github.token }} 
         run: |
           PR_NUMBER=$(gh pr list --state merged --base staging --json number -L 1 | jq -r '.[0].number')
           BUMP_TYPE=$(gh pr view $PR_NUMBER --json labels -q '.labels[].name' | grep -E 'major|minor|patch' || echo "patch")
@@ -98,6 +105,8 @@ jobs:
           echo "Next version: $NEW_TAG"
 
       - name: Generate release note
+        env:
+          GT_TOKEN: ${{ github.token }}
         run: |
           PR_NUMBER=$(gh pr list --state merged --base staging --json number -L 1 | jq -r '.[0].number')
           PR_TITLE=$(gh pr view $PR_NUMBER --json title -q '.title')
