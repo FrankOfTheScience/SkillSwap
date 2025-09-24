@@ -1,5 +1,8 @@
-﻿namespace SkillSwap.Api.Dtos;
+﻿using System.Diagnostics.CodeAnalysis;
 
+namespace SkillSwap.Api.Dtos;
+
+[ExcludeFromCodeCoverage]
 public class UpdateOfferDto
 {
     public required string Title { get; set; }

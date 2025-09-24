@@ -1,4 +1,8 @@
-﻿namespace SkillSwap.Domain;
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace SkillSwap.Domain;
+
+[ExcludeFromCodeCoverage]
 public class Booking
 {
     public int Id { get; set; }
