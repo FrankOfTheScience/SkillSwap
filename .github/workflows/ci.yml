@@ -19,6 +19,9 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Fetch all tags
+        run: git fetch --tags
+
       - uses: actions/setup-dotnet@v3
         with:
           dotnet-version: 8.0.x
@@ -54,6 +57,9 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+
+      - name: Fetch all tags
+        run: git fetch --tags
 
       - uses: actions/setup-dotnet@v3
         with:
@@ -119,27 +125,18 @@ jobs:
             "$NEW_TAG" "$PR_NUMBER" "$PR_TITLE" "$PR_BODY" "$DATE" > release_note.md
           cat release_note.md
 
-     # - name: Create GitHub Release
-     #   run: |
-     #     export GH_TOKEN=${{ secrets.SKILLSWAP_PAT }}
-     #     git config user.name "FrankOfTheScience"
-     #     git config user.email "FrankOfTheScience@users.noreply.github.com"
-     #     git remote set-url origin https://$PAT_TOKEN@github.com/${{ github.repository }}.git
-     #     gh release create $NEW_TAG release_note.md \
-     #       --title "$NEW_TAG" \
-     #       --notes-file release_note.md
-
-      # - name: Apply EF migrations (DISABLED, DB not in cloud yet)
-      #   run: dotnet ef database update --project ./SkillSwap.Infrastructure --startup-project ./SkillSwap.Api
-
       - name: Push tag
         run: |
           export PAT_TOKEN=${{ secrets.SKILLSWAP_PAT }}
           git config user.name "FrankOfTheScience"
           git config user.email "FrankOfTheScience@users.noreply.github.com"
           git remote set-url origin https://$PAT_TOKEN@github.com/${{ github.repository }}.git
-          git tag $NEW_TAG
-          git push origin $NEW_TAG
+          if git rev-parse "$NEW_TAG" >/dev/null 2>&1; then
+            echo "Tag $NEW_TAG already exists, skipping tagging"
+          else
+            git tag $NEW_TAG
+            git push origin $NEW_TAG
+          fi
 
       - name: Update CHANGELOG
         run: |
@@ -153,4 +150,16 @@ jobs:
           git add CHANGELOG.md
           git commit -m "docs: update changelog for $NEW_TAG [skip ci]" || echo "No changes"
           git push origin staging
-    
+
+      - name: Create GitHub Release (optional)
+        run: |
+          export PAT_TOKEN=${{ secrets.SKILLSWAP_PAT }}
+          export GH_TOKEN=$PAT_TOKEN
+          # Controlla se la release esiste già
+          if gh release view $NEW_TAG >/dev/null 2>&1; then
+            echo "Release $NEW_TAG already exists, skipping creation"
+          else
+            gh release create $NEW_TAG release_note.md \
+              --title "$NEW_TAG" \
+              --notes-file release_note.md
+          fi
