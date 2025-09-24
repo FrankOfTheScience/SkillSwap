@@ -1,10 +1,16 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 
 namespace SkillSwap.Domain;
 
 [ExcludeFromCodeCoverage]
 public class User
 {
-    public int Id { get; set; }
-    public required string Name { get; set; }
+    [Key]
+    public Guid Id { get; set; }
+    public string Email { get; set; } = null!;
+    public string DisplayName { get; set; } = null!;
+    public string PasswordHash { get; set; } = null!;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public List<string> Roles { get; set; } = new List<string>(); // Stubbed until AWS Cognito integration
 }
