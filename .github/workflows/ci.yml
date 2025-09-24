@@ -15,6 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          persist-credentials: false
 
       - uses: actions/setup-dotnet@v3
         with:
@@ -50,6 +53,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - uses: actions/setup-dotnet@v3
         with:
@@ -119,9 +123,8 @@ jobs:
       #   run: dotnet ef database update --project ./SkillSwap.Infrastructure --startup-project ./SkillSwap.Api
 
       - name: Push tag
-        env:
-          PAT_TOKEN: ${{ secrets.SKILLSWAP_PAT }}
         run: |
+          export PAT_TOKEN=${{ secrets.SKILLSWAP_PAT }}
           git config user.name "FrankOfTheScience"
           git config user.email "FrankOfTheScience@users.noreply.github.com"
           git remote set-url origin https://$PAT_TOKEN@github.com/${{ github.repository }}.git
@@ -129,9 +132,8 @@ jobs:
           git push origin $NEW_TAG
 
       - name: Update CHANGELOG
-        env:
-          PAT_TOKEN: ${{ secrets.SKILLSWAP_PAT }}
         run: |
+          export PAT_TOKEN=${{ secrets.SKILLSWAP_PAT }}
           git config user.name "FrankOfTheScience"
           git config user.email "FrankOfTheScience@users.noreply.github.com"
           git remote set-url origin https://$PAT_TOKEN@github.com/${{ github.repository }}.git
