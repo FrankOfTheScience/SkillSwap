@@ -15,14 +15,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Fetch all tags
+        run: git fetch --tags
 
       - uses: actions/setup-dotnet@v3
         with:
           dotnet-version: 8.0.x
 
       - name: Setup connection string
-        run: |
-          echo "ConnectionStrings__Default=${{ secrets.DEV_CONNECTION_STRING }}" >> $GITHUB_ENV
+        run: echo "ConnectionStrings__Default=${{ secrets.DEV_CONNECTION_STRING }}" >> $GITHUB_ENV
 
       - name: Restore
         run: dotnet restore
@@ -36,7 +41,7 @@ jobs:
           dotnet test --no-build --configuration Release \
             /p:CollectCoverage=true \
             /p:CoverletOutputFormat=opencover \
-            /p:CoverletOutput=../TestResults/coverage.opencover.xml
+            /p:CoverletOutput=TestResults/coverage.opencover.xml
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
@@ -51,14 +56,17 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
+          persist-credentials: false
+
+      - name: Fetch all tags
+        run: git fetch --tags
 
       - uses: actions/setup-dotnet@v3
         with:
           dotnet-version: 8.0.x
 
       - name: Setup connection string
-        run: |
-          echo "ConnectionStrings__Default=${{ secrets.STAGING_CONNECTION_STRING }}" >> $GITHUB_ENV
+        run: echo "ConnectionStrings__Default=${{ secrets.STAGING_CONNECTION_STRING }}" >> $GITHUB_ENV
 
       - name: Restore
         run: dotnet restore
@@ -67,28 +75,30 @@ jobs:
         run: dotnet build --no-restore --configuration Release
 
       - name: Test with coverage
-        run: dotnet test --no-build --configuration Release /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+        run: |
+          mkdir -p TestResults
+          dotnet test --no-build --configuration Release \
+            /p:CollectCoverage=true \
+            /p:CoverletOutputFormat=opencover \
+            /p:CoverletOutput=TestResults/coverage.opencover.xml
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: "**/coverage.opencover.xml"
+          path: TestResults/coverage.opencover.xml
 
       - name: Install GitHub CLI
         run: sudo apt-get install -y gh jq
 
       - name: Determine bump type from PR label
-        id: bump
-        env:
-          GH_TOKEN: ${{ github.token }} 
         run: |
+          export GH_TOKEN=${{ github.token }}
           PR_NUMBER=$(gh pr list --state merged --base staging --json number -L 1 | jq -r '.[0].number')
           BUMP_TYPE=$(gh pr view $PR_NUMBER --json labels -q '.labels[].name' | grep -E 'major|minor|patch' || echo "patch")
           echo "BUMP_TYPE=$BUMP_TYPE" >> $GITHUB_ENV
 
       - name: Calculate next semver
-        id: semver
         run: |
           LAST_TAG=$(git describe --tags --abbrev=0 || echo "v0.0.0")
           IFS='.' read -r MAJOR MINOR PATCH <<<"${LAST_TAG#v}"
@@ -105,38 +115,51 @@ jobs:
           echo "Next version: $NEW_TAG"
 
       - name: Generate release note
-        env:
-          GT_TOKEN: ${{ github.token }}
         run: |
+          export GH_TOKEN=${{ github.token }}
           PR_NUMBER=$(gh pr list --state merged --base staging --json number -L 1 | jq -r '.[0].number')
           PR_TITLE=$(gh pr view $PR_NUMBER --json title -q '.title')
           PR_BODY=$(gh pr view $PR_NUMBER --json body -q '.body')
           DATE=$(date +%Y-%m-%d)
-          NOTE="## Release Note ($NEW_TAG)\n\n**PR #$PR_NUMBER** - $PR_TITLE\n\n$PR_BODY\n\nReleased on $DATE"
-          echo "$NOTE" > release_note.md
+          printf "## Release Note (%s)\n\n**PR #%s** - %s\n\n%s\n\nReleased on %s\n" \
+            "$NEW_TAG" "$PR_NUMBER" "$PR_TITLE" "$PR_BODY" "$DATE" > release_note.md
           cat release_note.md
 
-      # - name: Apply EF migrations (DISABLED, DB not in cloud yet)
-      #   run: dotnet ef database update --project ./SkillSwap.Infrastructure --startup-project ./SkillSwap.Api
-
       - name: Push tag
-        env:
-          GH_TOKEN: ${{ github.token }} 
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag $NEW_TAG
-          git push origin $NEW_TAG
-          
+          export PAT_TOKEN=${{ secrets.SKILLSWAP_PAT }}
+          git config user.name "FrankOfTheScience"
+          git config user.email "FrankOfTheScience@users.noreply.github.com"
+          git remote set-url origin https://$PAT_TOKEN@github.com/${{ github.repository }}.git
+          if git rev-parse "$NEW_TAG" >/dev/null 2>&1; then
+            echo "Tag $NEW_TAG already exists, skipping tagging"
+          else
+            git tag $NEW_TAG
+            git push origin $NEW_TAG
+          fi
+
       - name: Update CHANGELOG
-        env:
-          GH_TOKEN: ${{ github.token }} 
         run: |
+          export PAT_TOKEN=${{ secrets.SKILLSWAP_PAT }}
+          git config user.name "FrankOfTheScience"
+          git config user.email "FrankOfTheScience@users.noreply.github.com"
+          git remote set-url origin https://$PAT_TOKEN@github.com/${{ github.repository }}.git
           echo "" >> CHANGELOG.md
           echo "## $NEW_TAG - $(date +%Y-%m-%d)" >> CHANGELOG.md
           cat release_note.md >> CHANGELOG.md
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add CHANGELOG.md
           git commit -m "docs: update changelog for $NEW_TAG [skip ci]" || echo "No changes"
           git push origin staging
+
+      - name: Create GitHub Release (optional)
+        run: |
+          export PAT_TOKEN=${{ secrets.SKILLSWAP_PAT }}
+          export GH_TOKEN=$PAT_TOKEN
+          # Controlla se la release esiste già
+          if gh release view $NEW_TAG >/dev/null 2>&1; then
+            echo "Release $NEW_TAG already exists, skipping creation"
+          else
+            gh release create $NEW_TAG release_note.md \
+              --title "$NEW_TAG" \
+              --notes-file release_note.md
+          fi
