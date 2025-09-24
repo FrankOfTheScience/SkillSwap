@@ -1,35 +1,46 @@
 ﻿using FluentAssertions;
-using NSubstitute;
-using SkillSwap.Application.Common.Interfaces;
+using Microsoft.AspNetCore.Http;
 using SkillSwap.Application.Offers.Commands;
 using SkillSwap.Tests.Common;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace SkillSwap.Tests.Handlers;
-public class CreateOfferCommandHandlerTests
+
+public class CreateOfferHandlerTests
 {
-    [Fact]
-    public async Task Handle_Should_AddOffer_And_ReturnId_And_Call_SaveChanges()
+    private static HttpContext CreateHttpContext(Guid userId, params string[] roles)
     {
-        using var realCtx = TestHelper.CreateInMemoryDbContext();
-        var dbSub = Substitute.For<IApplicationDbContext>();
+        var claims = new List<Claim>
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
+            new Claim(JwtRegisteredClaimNames.Email, "test@user.com")
+        };
 
-        dbSub.Offers.Returns(realCtx.Offers);
+        claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
 
-        dbSub.SaveChangesAsync(Arg.Any<System.Threading.CancellationToken>())
-             .Returns(ci => realCtx.SaveChangesAsync(ci.Arg<System.Threading.CancellationToken>()));
+        var identity = new ClaimsIdentity(claims, "TestAuth");
+        var principal = new ClaimsPrincipal(identity);
 
-        var handler = new CreateOfferCommandHandler(dbSub);
+        return new DefaultHttpContext { User = principal };
+    }
 
-        var cmd = new CreateOfferCommand("titolo", "desc", 10m, 1);
+    [Fact]
+    public async Task Handle_Should_CreateOffer_ForAuthenticatedUser()
+    {
+        using var ctx = TestHelper.CreateInMemoryDbContext();
+        var userId = Guid.NewGuid();
+        var accessor = new HttpContextAccessor { HttpContext = CreateHttpContext(userId, "User") };
+        var mapper = TestHelper.CreateMapper();
 
-        var id = await handler.Handle(cmd, CancellationToken.None);
+        var handler = new CreateOfferCommandHandler(ctx, mapper, accessor);
 
-        id.Should().BeGreaterThan(0);
+        var cmd = new CreateOfferCommand("newTitle", "newDesc", 100m, Guid.NewGuid());
+        var offerId = await handler.Handle(cmd, CancellationToken.None);
 
-        var added = await realCtx.Offers.FindAsync(id);
-        added.Should().NotBeNull();
-        added!.Title.Should().Be("titolo");
-
-        await dbSub.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+        var offer = await ctx.Offers.FindAsync(offerId);
+        offer.Should().NotBeNull();
+        offer!.Title.Should().Be("newTitle");
+        offer.CreatedBy.Should().Be(userId);
     }
 }

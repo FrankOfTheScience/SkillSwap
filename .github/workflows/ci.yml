@@ -21,8 +21,7 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Setup connection string
-        run: |
-          echo "ConnectionStrings__Default=${{ secrets.DEV_CONNECTION_STRING }}" >> $GITHUB_ENV
+        run: echo "ConnectionStrings__Default=${{ secrets.DEV_CONNECTION_STRING }}" >> $GITHUB_ENV
 
       - name: Restore
         run: dotnet restore
@@ -36,7 +35,7 @@ jobs:
           dotnet test --no-build --configuration Release \
             /p:CollectCoverage=true \
             /p:CoverletOutputFormat=opencover \
-            /p:CoverletOutput=../TestResults/coverage.opencover.xml
+            /p:CoverletOutput=TestResults/coverage.opencover.xml
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
@@ -57,8 +56,7 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Setup connection string
-        run: |
-          echo "ConnectionStrings__Default=${{ secrets.STAGING_CONNECTION_STRING }}" >> $GITHUB_ENV
+        run: echo "ConnectionStrings__Default=${{ secrets.STAGING_CONNECTION_STRING }}" >> $GITHUB_ENV
 
       - name: Restore
         run: dotnet restore
@@ -67,22 +65,33 @@ jobs:
         run: dotnet build --no-restore --configuration Release
 
       - name: Test with coverage
-        run: dotnet test --no-build --configuration Release /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+        run: |
+          mkdir -p TestResults
+          dotnet test --no-build --configuration Release \
+            /p:CollectCoverage=true \
+            /p:CoverletOutputFormat=opencover \
+            /p:CoverletOutput=TestResults/coverage.opencover.xml
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: "**/coverage.opencover.xml"
+          path: TestResults/coverage.opencover.xml
 
       - name: Install GitHub CLI
         run: sudo apt-get install -y gh jq
 
+      - name: Authenticate GitHub CLI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          export GH_TOKEN=$GH_TOKEN
+          gh auth login --with-token
+
       - name: Determine bump type from PR label
         id: bump
-        env:
-          GH_TOKEN: ${{ github.token }} 
         run: |
+          export GH_TOKEN=$GH_TOKEN
           PR_NUMBER=$(gh pr list --state merged --base staging --json number -L 1 | jq -r '.[0].number')
           BUMP_TYPE=$(gh pr view $PR_NUMBER --json labels -q '.labels[].name' | grep -E 'major|minor|patch' || echo "patch")
           echo "BUMP_TYPE=$BUMP_TYPE" >> $GITHUB_ENV
@@ -105,9 +114,8 @@ jobs:
           echo "Next version: $NEW_TAG"
 
       - name: Generate release note
-        env:
-          GT_TOKEN: ${{ github.token }}
         run: |
+          export GH_TOKEN=$GH_TOKEN
           PR_NUMBER=$(gh pr list --state merged --base staging --json number -L 1 | jq -r '.[0].number')
           PR_TITLE=$(gh pr view $PR_NUMBER --json title -q '.title')
           PR_BODY=$(gh pr view $PR_NUMBER --json body -q '.body')
@@ -120,17 +128,13 @@ jobs:
       #   run: dotnet ef database update --project ./SkillSwap.Infrastructure --startup-project ./SkillSwap.Api
 
       - name: Push tag
-        env:
-          GH_TOKEN: ${{ github.token }} 
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag $NEW_TAG
           git push origin $NEW_TAG
-          
+
       - name: Update CHANGELOG
-        env:
-          GH_TOKEN: ${{ github.token }} 
         run: |
           echo "" >> CHANGELOG.md
           echo "## $NEW_TAG - $(date +%Y-%m-%d)" >> CHANGELOG.md
