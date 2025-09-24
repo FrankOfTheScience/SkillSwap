@@ -121,7 +121,7 @@ jobs:
 
       - name: Create GitHub Release
         run: |
-          export GH_TOKEN=${{ github.token }}
+          export PAT_TOKEN=${{ secrets.SKILLSWAP_PAT }}
           gh release create $NEW_TAG release_note.md \
             --title "$NEW_TAG" \
             --notes-file release_note.md
