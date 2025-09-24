@@ -121,7 +121,7 @@ jobs:
 
       - name: Create GitHub Release
         run: |
-          export PAT_TOKEN=${{ secrets.SKILLSWAP_PAT }}
+          export GH_TOKEN=${{ secrets.SKILLSWAP_PAT }}
           git config user.name "FrankOfTheScience"
           git config user.email "FrankOfTheScience@users.noreply.github.com"
           git remote set-url origin https://$PAT_TOKEN@github.com/${{ github.repository }}.git
