@@ -1,6 +1,8 @@
 using FluentValidation;
 using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using SkillSwap.Api.Dtos;
 using SkillSwap.Api.Middleware;
 using SkillSwap.Application.Common.Interfaces;
@@ -9,13 +11,20 @@ using SkillSwap.Application.Offers.Dtos;
 using SkillSwap.Application.Offers.Mappings;
 using SkillSwap.Application.Offers.Queries;
 using SkillSwap.Application.Offers.Validators;
+using SkillSwap.Application.Services;
+using SkillSwap.Application.Users.Commands;
+using SkillSwap.Application.Users.Mappings;
+using SkillSwap.Application.Users.Validators;
 using SkillSwap.Infrastructure;
 using System.Diagnostics.CodeAnalysis;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 internal class Program
 {
     [ExcludeFromCodeCoverage]
-    private static void Main(string[] args)
+    private static async Task Main(string[] args)
     {
 
         var builder = WebApplication.CreateBuilder(args);
@@ -26,18 +35,36 @@ internal class Program
         var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
                                ?? Environment.GetEnvironmentVariable("SKILLSWAP_DB_CONNECTION");
 
-        builder.Services.AddDbContext<SkillSwapDbContext>(options =>
-            options.UseNpgsql(connectionString));
-        builder.Services.AddScoped<IApplicationDbContext>(provider =>
-            provider.GetRequiredService<SkillSwapDbContext>());
-        builder.Services.AddMediatR(cfg =>
-            cfg.RegisterServicesFromAssembly(typeof(CreateOfferCommand).Assembly));
+        builder.Services.AddDbContext<SkillSwapDbContext>(options => options.UseNpgsql(connectionString));
+        builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<SkillSwapDbContext>());
+        builder.Services.AddScoped<IAuthService, AuthService>();
+        builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(CreateOfferCommand).Assembly));
 
 
         // Register validators and mappers
         builder.Services.AddAutoMapper(typeof(OfferProfile));
         builder.Services.AddValidatorsFromAssemblyContaining<CreateOfferCommandValidator>();
         builder.Services.AddValidatorsFromAssemblyContaining<UpdateOfferCommandValidator>();
+        builder.Services.AddAutoMapper(typeof(UserProfile));
+        builder.Services.AddValidatorsFromAssemblyContaining<RegisterUserCommandValidator>();
+
+        builder.Services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                ValidAudience = builder.Configuration["Jwt:Audience"],
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+            };
+        });
 
         // Build the app
         var app = builder.Build();
@@ -52,6 +79,52 @@ internal class Program
         }
         app.UseHttpsRedirection();
 
+        app.UseAuthentication();
+
+        app.Use(async (context, next) =>
+        {
+            if (context.User.Identity?.IsAuthenticated == true && context.Request.Headers.TryGetValue("X-User-Roles", out var rolesHeader))
+            {
+                var claims = rolesHeader.ToString().Split(',')
+                    .Select(r => new System.Security.Claims.Claim("role", r));
+                var appIdentity = new System.Security.Claims.ClaimsIdentity(claims);
+                context.User.AddIdentity(appIdentity);
+            }
+
+            await next();
+        });
+
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<SkillSwapDbContext>();
+            await DbSeeder.SeedAsync(db);
+        }
+
+        // POST /api/register
+        app.MapPost("/register", async (RegisterUserCommand cmd, IMediator mediator) =>
+        {
+            var token = await mediator.Send(cmd);
+            return Results.Ok(new { Token = token });
+        });
+
+        // POST /api/login
+        app.MapPost("/login", async (LoginUserCommand cmd, IMediator mediator) =>
+        {
+            var token = await mediator.Send(cmd);
+            return Results.Ok(new { Token = token });
+        });
+
+        // GET /api/user/profile
+        app.MapGet("/user/profile", [Microsoft.AspNetCore.Authorization.Authorize(Roles = "User,Admin")] (ClaimsPrincipal user) =>
+        {
+            return Results.Ok(new
+            {
+                Id = user.FindFirstValue(JwtRegisteredClaimNames.Sub),
+                Email = user.FindFirstValue(JwtRegisteredClaimNames.Email),
+                DisplayName = user.FindFirstValue("displayName"),
+                Roles = user.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList()
+            });
+        });
 
         // GET /api/offers/{id}
         app.MapGet("/offers/{id:int}", async (int id, IMediator mediator) =>
@@ -109,7 +182,6 @@ internal class Program
         .WithName("DeleteOffer")
         .Produces(204)
         .Produces(404);
-
 
         app.Run();
     }
