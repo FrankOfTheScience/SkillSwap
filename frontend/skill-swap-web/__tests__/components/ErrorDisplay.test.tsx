@@ -9,19 +9,20 @@ describe('ErrorDisplay', () => {
   it('should render error message', () => {
     render(<ErrorDisplay {...defaultProps} />)
 
-    expect(screen.getByText('Something went wrong')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Something went wrong' })).toBeInTheDocument()
+    expect(screen.getByText('Something went wrong', { selector: 'p' })).toBeInTheDocument()
   })
 
   it('should render default title when not provided', () => {
     render(<ErrorDisplay {...defaultProps} />)
 
-    expect(screen.getByText('Something went wrong')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Something went wrong' })).toBeInTheDocument()
   })
 
   it('should render custom title when provided', () => {
     render(<ErrorDisplay {...defaultProps} title="Custom Error Title" />)
 
-    expect(screen.getByText('Custom Error Title')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Custom Error Title' })).toBeInTheDocument()
   })
 
   it('should render retry button when onRetry is provided', () => {
@@ -64,7 +65,7 @@ describe('ErrorDisplay', () => {
   it('should have correct CSS classes for styling', () => {
     render(<ErrorDisplay {...defaultProps} />)
 
-    const container = screen.getByText('Something went wrong').closest('div')
+    const container = screen.getByRole('heading', { name: 'Something went wrong' }).closest('div')?.parentElement
     expect(container).toHaveClass('bg-red-50', 'border-red-200', 'rounded-lg')
   })
 
@@ -85,7 +86,10 @@ describe('ErrorDisplay', () => {
   it('should handle empty error message', () => {
     render(<ErrorDisplay error="" />)
 
-    expect(screen.getByText('')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Something went wrong' })).toBeInTheDocument()
+    // The error message paragraph should exist but may be empty
+    const errorParagraph = screen.getByRole('heading').parentElement?.querySelector('p')
+    expect(errorParagraph).toBeInTheDocument()
   })
 
   it('should handle special characters in error message', () => {

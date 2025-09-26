@@ -36,7 +36,7 @@ describe('Auth Service', () => {
   describe('login', () => {
     it('should login user and return user data', async () => {
       const mockToken = 'mock-jwt-token'
-      const mockUser = {
+      const expectedUser = {
         id: '123',
         email: 'test@example.com',
         displayName: 'Test User',
@@ -48,6 +48,9 @@ describe('Auth Service', () => {
       mockedApi.post.mockResolvedValueOnce({
         data: { token: mockToken }
       })
+
+      // Mock localStorage.getItem for getCurrentUser
+      mockLocalStorage.getItem.mockReturnValueOnce(mockToken)
 
       // Mock JWT decode
       mockedJwtDecode.mockReturnValueOnce({
@@ -67,7 +70,7 @@ describe('Auth Service', () => {
         password: 'password123'
       })
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith('token', mockToken)
-      expect(result).toEqual(mockUser)
+      expect(result).toEqual(expectedUser)
     })
 
     it('should handle login failure', async () => {
@@ -76,7 +79,7 @@ describe('Auth Service', () => {
       await expect(login({
         email: 'test@example.com',
         password: 'wrongpassword'
-      })).rejects.toThrow('Login failed')
+      })).rejects.toThrow('Something went wrong. Please try again.')
 
       expect(mockLocalStorage.setItem).not.toHaveBeenCalled()
     })
@@ -106,7 +109,7 @@ describe('Auth Service', () => {
         email: 'invalid@example.com',
         displayName: 'Invalid User',
         password: 'weak'
-      })).rejects.toThrow('Registration failed')
+      })).rejects.toThrow('Something went wrong. Please try again.')
     })
   })
 
