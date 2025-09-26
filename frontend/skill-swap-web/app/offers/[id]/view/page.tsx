@@ -2,7 +2,7 @@
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import api from "../../../../services/api";
-import { Offer } from "../../../../types";
+import { Offer, User } from "../../../../types";
 import { getCurrentUser } from "../../../../services/auth";
 import Link from "next/link";
 import DeleteConfirmModal from "../../../../components/DeleteConfirmModal";
@@ -14,7 +14,7 @@ export default function ViewOfferPage({ params }: ViewProps) {
   const router = useRouter();
   const resolvedParams = use(params);
   const [offer, setOffer] = useState<Offer | null>(null);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleteModal, setDeleteModal] = useState(false);
 
@@ -71,7 +71,7 @@ export default function ViewOfferPage({ params }: ViewProps) {
         <div className="text-center py-8">
           <div className="text-6xl mb-4">❌</div>
           <h2 className="text-xl font-bold text-gray-800 mb-4">Offer not found</h2>
-          <p className="text-gray-600 mb-6">The offer you're looking for doesn't exist or has been removed.</p>
+          <p className="text-gray-600 mb-6">The offer you&apos;re looking for doesn&apos;t exist or has been removed.</p>
           <button
             onClick={() => router.push("/")}
             className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105"

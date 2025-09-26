@@ -48,15 +48,16 @@ export default function CreateOfferModal({ isOpen, onClose, onSuccess }: CreateO
       onSuccess();
       // Reset form
       resetForm();
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string; error?: string }; status?: number }; message?: string; config?: unknown };
       console.error("Create offer error:", {
-        message: err.message,
-        response: err.response,
-        status: err.response?.status,
-        data: err.response?.data,
-        config: err.config
+        message: error.message,
+        response: error.response,
+        status: error.response?.status,
+        data: error.response?.data,
+        config: error.config
       });
-      setError(err.response?.data?.message || err.response?.data?.error || err.message || "Failed to create offer");
+      setError(error.response?.data?.message || error.response?.data?.error || error.message || "Failed to create offer");
     } finally {
       setIsSubmitting(false);
     }

@@ -47,9 +47,10 @@ export default function RegisterModal({ isOpen, onClose, onSuccess, onSwitchToLo
       onSuccess();
       // Reset form
       resetForm();
-    } catch (err: any) {
-      console.error("Registration error:", err.response?.data || err.message);
-      setError(err.response?.data?.message || err.response?.data?.error || "Registration failed");
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string; error?: string } }; message?: string };
+      console.error("Registration error:", error.response?.data || error.message);
+      setError(error.response?.data?.message || error.response?.data?.error || "Registration failed");
     } finally {
       setIsSubmitting(false);
     }
@@ -179,7 +180,7 @@ export default function RegisterModal({ isOpen, onClose, onSuccess, onSwitchToLo
             <select
               id="role"
               value={role}
-              onChange={e => setRole(e.target.value as any)}
+              onChange={e => setRole(e.target.value as "User" | "Admin")}
               className="w-full px-4 py-3 border-2 border-gray-400 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900"
               disabled={isSubmitting}
             >

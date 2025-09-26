@@ -35,9 +35,10 @@ export default function LoginModal({ isOpen, onClose, onSuccess, onSwitchToRegis
       setEmail("");
       setPassword("");
       setError("");
-    } catch (err: any) {
-      console.error("Login error:", err.response?.data || err.message);
-      setError(err.response?.data?.message || err.response?.data?.error || "Login failed");
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string; error?: string } }; message?: string };
+      console.error("Login error:", error.response?.data || error.message);
+      setError(error.response?.data?.message || error.response?.data?.error || "Login failed");
     } finally {
       setIsSubmitting(false);
     }

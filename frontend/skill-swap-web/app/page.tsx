@@ -1,15 +1,14 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getCurrentUser, logout } from "../services/auth";
 import OfferList from "../components/OfferList";
 import LoginModal from "../components/LoginModal";
 import RegisterModal from "../components/RegisterModal";
 import CreateOfferModal from "../components/CreateOfferModal";
-import Link from "next/link";
 import { User } from "../types";
 
-export default function Home() {
+function HomePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
@@ -197,5 +196,13 @@ export default function Home() {
         />
       )}
     </main>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center">Loading...</div>}>
+      <HomePage />
+    </Suspense>
   );
 }

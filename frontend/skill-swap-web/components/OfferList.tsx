@@ -31,12 +31,13 @@ export default function OfferList({ user }: OfferListProps) {
       await api.delete(`/offers/${deleteModal.offer.id}`);
       setOffers(offers.filter(o => o.id !== deleteModal.offer!.id));
       setDeleteModal({ isOpen: false, offer: null });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: unknown; status?: number }; message?: string };
       console.error("Delete failed:", {
-        message: error.message,
-        response: error.response,
-        status: error.response?.status,
-        data: error.response?.data
+        message: err.message,
+        response: err.response,
+        status: err.response?.status,
+        data: err.response?.data
       });
       // You could show an error message to the user here
       setDeleteModal({ isOpen: false, offer: null });
@@ -54,7 +55,7 @@ export default function OfferList({ user }: OfferListProps) {
   
   const isAdmin = () => {
     console.log('Checking admin status:', { userRole: user?.role, user });
-    return user?.role === "Admin" || (user as any)?.roles?.includes("Admin");
+    return user?.role === "Admin" || (user as { roles?: string[] })?.roles?.includes("Admin");
   };
 
   return (

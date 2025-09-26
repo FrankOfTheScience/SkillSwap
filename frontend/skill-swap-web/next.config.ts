@@ -6,12 +6,9 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_APP_ENV: process.env.NEXT_PUBLIC_APP_ENV || 'development',
   },
   output: 'standalone', // For better deployment to AWS
-  experimental: {
-    // Enable modern bundling for better performance
-    turbo: {
-      loaders: {
-        '.svg': ['@svgr/webpack'],
-      },
+  turbopack: {
+    rules: {
+      '*.svg': ['@svgr/webpack'],
     },
   },
 };

@@ -24,7 +24,7 @@ export default function EditOfferPage({ params }: EditProps) {
         setTitle(offer.title);
         setDescription(offer.description);
         setPrice(offer.price.toString());
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Fetch offer error:", err);
         setError("Failed to load offer details");
       } finally {
@@ -65,15 +65,16 @@ export default function EditOfferPage({ params }: EditProps) {
         price: numericPrice
       });
       router.push("/");
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string; error?: string }; status?: number }; message?: string; config?: unknown };
       console.error("Update offer error:", {
-        message: err.message,
-        response: err.response,
-        status: err.response?.status,
-        data: err.response?.data,
-        config: err.config
+        message: error.message,
+        response: error.response,
+        status: error.response?.status,
+        data: error.response?.data,
+        config: error.config
       });
-      setError(err.response?.data?.message || err.response?.data?.error || err.message || "Failed to update offer");
+      setError(error.response?.data?.message || error.response?.data?.error || error.message || "Failed to update offer");
     } finally {
       setIsSubmitting(false);
     }
