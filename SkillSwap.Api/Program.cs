@@ -115,7 +115,6 @@ internal class Program
             app.UseSwaggerUI();
         }
         app.UseHttpsRedirection();
-
         app.UseCors("AllowFrontend");
         app.UseAuthentication();
         app.UseAuthorization();
@@ -147,7 +146,7 @@ internal class Program
             });
 
         // POST /auth/login
-        app.MapPost("auth/login", async (LoginUserCommand cmd, IMediator mediator) =>
+        app.MapPost("auth/login", async (LoginUserCommand cmd, IMediator mediato
             {
                 var token = await mediator.Send(cmd);
                 return Results.Ok(new { Token = token });

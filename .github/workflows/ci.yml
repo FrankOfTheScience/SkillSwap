@@ -9,9 +9,11 @@ on:
     branches:
       - staging
 
+
 env:
   NODE_VERSION: '20'
   DOTNET_VERSION: '8.0.x'
+
 
 jobs:
   dev-ci:
@@ -93,12 +95,40 @@ jobs:
         with:
           name: frontend-build-dev
           path: frontend/skill-swap-web/.next/
+      - uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Setup connection string
+        run: echo "ConnectionStrings__Default=${{ secrets.DEV_CONNECTION_STRING }}" >> $GITHUB_ENV
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Test with coverage
+        run: |
+          mkdir -p TestResults
+          dotnet test --no-build --configuration Release \
+            /p:CollectCoverage=true \
+            /p:CoverletOutputFormat=opencover \
+            /p:CoverletOutput=TestResults/coverage.opencover.xml
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: TestResults/coverage.opencover.xml
+
 
   staging-release:
     if: github.ref == 'refs/heads/staging'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -174,7 +204,34 @@ jobs:
           name: frontend-build-staging
           path: frontend/skill-swap-web/.next/
 
-      # GitHub CLI setup for release process
+      # GitHub CLI setup for
+      - uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Setup connection string
+        run: echo "ConnectionStrings__Default=${{ secrets.STAGING_CONNECTION_STRING }}" >> $GITHUB_ENV
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Test with coverage
+        run: |
+          mkdir -p TestResults
+          dotnet test --no-build --configuration Release \
+            /p:CollectCoverage=true \
+            /p:CoverletOutputFormat=opencover \
+            /p:CoverletOutput=TestResults/coverage.opencover.xml
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: TestResults/coverage.opencover.xml
+
       - name: Install GitHub CLI
         run: sudo apt-get install -y gh jq
 
