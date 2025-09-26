@@ -1,6 +1,412 @@
 @SkillSwap.Api_HostAddress = http://localhost:5095
+@adminEmail = admin@skillswap.com
+@adminPassword = Admin123!
+@testUserEmail = user@test.com
+@testUserPassword = Test123!
+@testUserDisplayName = Test User
 
-GET {{SkillSwap.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+# =============================================================================
+# AUTHENTICATION ENDPOINTS
+# =============================================================================
+
+### Register a new test user
+# @name registerUser
+POST {{SkillSwap.Api_HostAddress}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "{{testUserEmail}}",
+  "displayName": "{{testUserDisplayName}}",
+  "password": "{{testUserPassword}}"
+}
+
+> {%
+client.test("Registration successful", function() {
+    client.assert(response.status === 200, "Expected status 200");
+    client.assert(response.body.hasOwnProperty("token"), "Response should contain token");
+    client.global.set("userToken", response.body.token);
+});
+%}
 
 ###
+
+### Login as test user
+# @name loginUser
+POST {{SkillSwap.Api_HostAddress}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{testUserEmail}}",
+  "password": "{{testUserPassword}}"
+}
+
+> {%
+client.test("Login successful", function() {
+    client.assert(response.status === 200, "Expected status 200");
+    client.assert(response.body.hasOwnProperty("token"), "Response should contain token");
+    client.global.set("userToken", response.body.token);
+});
+%}
+
+###
+
+### Login as admin
+# @name loginAdmin
+POST {{SkillSwap.Api_HostAddress}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+> {%
+client.test("Admin login successful", function() {
+    client.assert(response.status === 200, "Expected status 200");
+    client.assert(response.body.hasOwnProperty("token"), "Response should contain token");
+    client.global.set("adminToken", response.body.token);
+});
+%}
+
+###
+
+# =============================================================================
+# USER PROFILE ENDPOINTS
+# =============================================================================
+
+### Get user profile (requires authentication)
+# @name getUserProfile
+GET {{SkillSwap.Api_HostAddress}}/user/profile
+Authorization: Bearer {{userToken}}
+Accept: application/json
+
+> {%
+client.test("Get user profile successful", function() {
+    client.assert(response.status === 200, "Expected status 200");
+    client.assert(response.body.hasOwnProperty("id"), "Response should contain user ID");
+    client.assert(response.body.hasOwnProperty("email"), "Response should contain email");
+    client.assert(response.body.hasOwnProperty("displayName"), "Response should contain display name");
+    client.assert(response.body.hasOwnProperty("roles"), "Response should contain roles");
+});
+%}
+
+###
+
+### Get admin profile (requires authentication)
+# @name getAdminProfile  
+GET {{SkillSwap.Api_HostAddress}}/user/profile
+Authorization: Bearer {{adminToken}}
+Accept: application/json
+
+> {%
+client.test("Get admin profile successful", function() {
+    client.assert(response.status === 200, "Expected status 200");
+    client.assert(response.body.hasOwnProperty("id"), "Response should contain user ID");
+    client.assert(response.body.hasOwnProperty("email"), "Response should contain email");
+    client.assert(response.body.hasOwnProperty("displayName"), "Response should contain display name");
+    client.assert(response.body.hasOwnProperty("roles"), "Response should contain roles");
+    client.assert(response.body.roles.includes("Admin"), "User should have Admin role");
+});
+%}
+
+###
+
+# =============================================================================
+# OFFER ENDPOINTS
+# =============================================================================
+
+### Get all offers (public endpoint)
+# @name getAllOffers
+GET {{SkillSwap.Api_HostAddress}}/offers
+Accept: application/json
+
+> {%
+client.test("Get all offers successful", function() {
+    client.assert(response.status === 200, "Expected status 200");
+    client.assert(response.body.hasOwnProperty("items"), "Response should contain items array");
+    client.assert(response.body.hasOwnProperty("totalCount"), "Response should contain totalCount");
+    client.assert(response.body.hasOwnProperty("pageNumber"), "Response should contain pageNumber");
+    client.assert(response.body.hasOwnProperty("pageSize"), "Response should contain pageSize");
+});
+%}
+
+###
+
+### Get offers with filters and pagination
+# @name getOffersWithFilters
+GET {{SkillSwap.Api_HostAddress}}/offers?page=1&pageSize=5&search=web&maxBudget=500&sortBy=price&sortDescending=false
+Accept: application/json
+
+> {%
+client.test("Get filtered offers successful", function() {
+    client.assert(response.status === 200, "Expected status 200");
+    client.assert(response.body.hasOwnProperty("items"), "Response should contain items array");
+    client.assert(response.body.pageSize <= 5, "Page size should be 5 or less");
+});
+%}
+
+###
+
+### Get user's own offers (requires authentication)
+# @name getUserOffers
+GET {{SkillSwap.Api_HostAddress}}/offers?showOnlyMyOffers=true
+Authorization: Bearer {{userToken}}
+Accept: application/json
+
+> {%
+client.test("Get user offers successful", function() {
+    client.assert(response.status === 200, "Expected status 200");
+    client.assert(response.body.hasOwnProperty("items"), "Response should contain items array");
+});
+%}
+
+###
+
+### Create a new offer (requires authentication)
+# @name createOffer
+POST {{SkillSwap.Api_HostAddress}}/offers
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "title": "Professional Web Development Services",
+  "description": "I offer complete web development services including frontend and backend development using modern technologies like React, Node.js, and databases.",
+  "price": 75.00
+}
+
+> {%
+client.test("Create offer successful", function() {
+    client.assert(response.status === 201, "Expected status 201");
+    client.assert(response.body.hasOwnProperty("id"), "Response should contain offer ID");
+    client.global.set("testOfferId", response.body.id);
+});
+%}
+
+###
+
+### Create another offer for testing
+# @name createSecondOffer
+POST {{SkillSwap.Api_HostAddress}}/offers
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "title": "Mobile App Development",
+  "description": "Native iOS and Android app development with modern frameworks like React Native and Flutter.",
+  "price": 120.00
+}
+
+> {%
+client.test("Create second offer successful", function() {
+    client.assert(response.status === 201, "Expected status 201");
+    client.assert(response.body.hasOwnProperty("id"), "Response should contain offer ID");
+    client.global.set("secondOfferId", response.body.id);
+});
+%}
+
+###
+
+### Get specific offer by ID
+# @name getOfferById
+GET {{SkillSwap.Api_HostAddress}}/offers/{{testOfferId}}
+Accept: application/json
+
+> {%
+client.test("Get offer by ID successful", function() {
+    client.assert(response.status === 200, "Expected status 200");
+    client.assert(response.body.hasOwnProperty("id"), "Response should contain offer ID");
+    client.assert(response.body.hasOwnProperty("title"), "Response should contain title");
+    client.assert(response.body.hasOwnProperty("description"), "Response should contain description");
+    client.assert(response.body.hasOwnProperty("price"), "Response should contain price");
+    client.assert(response.body.hasOwnProperty("createdBy"), "Response should contain createdBy");
+    client.assert(response.body.hasOwnProperty("createdAt"), "Response should contain createdAt");
+});
+%}
+
+###
+
+### Update an offer (requires authentication and ownership)
+# @name updateOffer
+PUT {{SkillSwap.Api_HostAddress}}/offers/{{testOfferId}}
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "title": "Premium Web Development Services - Updated",
+  "description": "Updated: I offer complete web development services including frontend and backend development using modern technologies like React, Node.js, TypeScript, and various databases. Now with premium support!",
+  "price": 85.00
+}
+
+> {%
+client.test("Update offer successful", function() {
+    client.assert(response.status === 200, "Expected status 200");
+    client.assert(response.body.hasOwnProperty("id"), "Response should contain offer ID");
+    client.assert(response.body.title.includes("Updated"), "Title should be updated");
+    client.assert(response.body.price === 85.00, "Price should be updated to 85.00");
+});
+%}
+
+###
+
+### Try to update offer without authentication (should fail)
+# @name updateOfferUnauthorized
+PUT {{SkillSwap.Api_HostAddress}}/offers/{{testOfferId}}
+Content-Type: application/json
+
+{
+  "title": "Unauthorized Update Attempt",
+  "description": "This should fail",
+  "price": 999.00
+}
+
+> {%
+client.test("Update offer without auth should fail", function() {
+    client.assert(response.status === 401, "Expected status 401 (Unauthorized)");
+});
+%}
+
+###
+
+### Get non-existent offer (should return 404)
+# @name getNonExistentOffer
+GET {{SkillSwap.Api_HostAddress}}/offers/999999
+Accept: application/json
+
+> {%
+client.test("Get non-existent offer should return 404", function() {
+    client.assert(response.status === 404, "Expected status 404");
+});
+%}
+
+###
+
+### Delete an offer (requires authentication and ownership)
+# @name deleteOffer
+DELETE {{SkillSwap.Api_HostAddress}}/offers/{{secondOfferId}}
+Authorization: Bearer {{userToken}}
+
+> {%
+client.test("Delete offer successful", function() {
+    client.assert(response.status === 204, "Expected status 204 (No Content)");
+});
+%}
+
+###
+
+### Try to delete offer without authentication (should fail)
+# @name deleteOfferUnauthorized
+DELETE {{SkillSwap.Api_HostAddress}}/offers/{{testOfferId}}
+
+> {%
+client.test("Delete offer without auth should fail", function() {
+    client.assert(response.status === 401, "Expected status 401 (Unauthorized)");
+});
+%}
+
+###
+
+### Verify deleted offer no longer exists
+# @name verifyOfferDeleted
+GET {{SkillSwap.Api_HostAddress}}/offers/{{secondOfferId}}
+Accept: application/json
+
+> {%
+client.test("Deleted offer should not exist", function() {
+    client.assert(response.status === 404, "Expected status 404");
+});
+%}
+
+###
+
+# =============================================================================
+# ERROR TESTING
+# =============================================================================
+
+### Test invalid offer creation (missing required fields)
+# @name createInvalidOffer
+POST {{SkillSwap.Api_HostAddress}}/offers
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "title": "",
+  "description": "",
+  "price": -10
+}
+
+> {%
+client.test("Invalid offer creation should fail", function() {
+    client.assert(response.status === 400, "Expected status 400 (Bad Request)");
+});
+%}
+
+###
+
+### Test invalid login credentials
+# @name invalidLogin
+POST {{SkillSwap.Api_HostAddress}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "nonexistent@test.com",
+  "password": "wrongpassword"
+}
+
+> {%
+client.test("Invalid login should fail", function() {
+    client.assert(response.status === 400 || response.status === 401, "Expected status 400 or 401");
+});
+%}
+
+###
+
+### Test malformed JSON request
+# @name malformedRequest
+POST {{SkillSwap.Api_HostAddress}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@test.com"
+  // Missing comma and password field - malformed JSON
+}
+
+> {%
+client.test("Malformed request should fail", function() {
+    client.assert(response.status === 400, "Expected status 400 (Bad Request)");
+});
+%}
+
+###
+
+# =============================================================================
+# PERFORMANCE & LOAD TESTING
+# =============================================================================
+
+### Test API response time
+# @name responseTimeTest
+GET {{SkillSwap.Api_HostAddress}}/offers
+Accept: application/json
+
+> {%
+client.test("API response time is acceptable", function() {
+    client.assert(response.status === 200, "Expected status 200");
+    client.assert(response.responseTime < 2000, "Response time should be less than 2 seconds");
+});
+%}
+
+###
+
+# =============================================================================
+# CLEANUP
+# =============================================================================
+
+### Final cleanup - delete test offer
+# @name cleanupTestOffer
+DELETE {{SkillSwap.Api_HostAddress}}/offers/{{testOfferId}}
+Authorization: Bearer {{userToken}}
+
+> {%
+client.test("Cleanup successful", function() {
+    client.assert(response.status === 204, "Expected status 204 (No Content)");
+});
+%}
