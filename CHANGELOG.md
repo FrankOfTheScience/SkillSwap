@@ -164,3 +164,46 @@ This PR introduces comprehensive improvements to the SkillSwap platform, focusin
 - **Performance**: Optimized filtering with debounced search and efficient pagination
 
 Released on 2025-09-26
+
+## v0.1.3 - 2025-09-26
+## Release Note (v0.1.3)
+
+**PR #22** - Comprehensive Testing Infrastructure and API Integration Enhancement
+
+This PR introduces comprehensive testing coverage for both backend and frontend components, along with enhanced API testing capabilities for improved development workflow and code quality assurance.
+
+### Backend Testing Enhancements
+- Added complete unit test coverage for DTOs (CreateOfferDto, UpdateOfferDto, OfferDto)
+- Implemented comprehensive testing for Commands (RegisterUserCommand, LoginUserCommand)
+- Created thorough test suites for Domain models (User, Offer, Booking)
+- Removed ExcludeFromCodeCoverage attributes from all testable classes
+- Enhanced test coverage with 200+ test cases covering property validation, edge cases, and record immutability
+
+### Frontend Testing Infrastructure
+- Established complete Jest testing framework with TypeScript integration
+- Configured React Testing Library for component testing
+- Added comprehensive test suites for utilities, services, and components
+- Implemented proper mocking for Next.js router, localStorage, and browser APIs
+- Fixed TypeScript compatibility issues in Jest configuration
+- Achieved 36/36 passing tests across all frontend test suites
+
+### API Testing and Debugging Tools
+- Created comprehensive HTTP request file for complete API testing coverage
+- Implemented authentication flow with automatic JWT token management
+- Added full CRUD operation tests for all endpoints with proper authorization
+- Included error handling, security validation, and performance testing scenarios
+- Established sequential test workflows with automatic cleanup procedures
+- Enhanced debugging capabilities for both development and production environments
+
+### License and Documentation Updates
+- Updated LICENSE to custom proprietary license with open contribution framework
+- Enhanced project documentation and testing guidelines
+
+### Technical Improvements
+- Resolved Jest configuration conflicts and TypeScript compilation errors
+- Improved code coverage reporting and CI/CD integration readiness
+- Enhanced developer experience with comprehensive testing and debugging tools
+
+This PR significantly improves code quality, testing coverage, and development workflow efficiency while maintaining backward compatibility and following established coding standards.
+
+Released on 2025-09-26
