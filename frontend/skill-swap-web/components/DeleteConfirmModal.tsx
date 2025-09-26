@@ -7,9 +7,10 @@ interface DeleteConfirmModalProps {
   onConfirm: () => void;
   title: string;
   message: string;
+  error?: string | null;
 }
 
-export default function DeleteConfirmModal({ isOpen, onClose, onConfirm, title, message }: DeleteConfirmModalProps) {
+export default function DeleteConfirmModal({ isOpen, onClose, onConfirm, title, message, error }: DeleteConfirmModalProps) {
   return (
     <ModalWrapper title={title} isOpen={isOpen} onClose={onClose}>
       <div className="bg-gradient-to-br from-red-50 via-rose-50 to-pink-50 rounded-xl border border-red-100 shadow-lg p-6">
@@ -22,19 +23,33 @@ export default function DeleteConfirmModal({ isOpen, onClose, onConfirm, title, 
             {message}
           </p>
           
+          {error && (
+            <div className="bg-red-100 border border-red-200 rounded-lg p-3 mb-4 text-left">
+              <div className="flex items-start gap-2">
+                <span className="text-red-500 text-sm">❌</span>
+                <div>
+                  <p className="font-semibold text-red-800 text-sm">Delete Failed</p>
+                  <p className="text-red-700 text-sm">{error}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          
           <div className="flex gap-3">
             <button
               onClick={onClose}
               className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-3 px-4 rounded-lg transition-colors"
             >
-              Cancel
+              {error ? 'Close' : 'Cancel'}
             </button>
-            <button
-              onClick={onConfirm}
-              className="flex-1 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-105"
-            >
-              🗑️ Delete
-            </button>
+            {!error && (
+              <button
+                onClick={onConfirm}
+                className="flex-1 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-105"
+              >
+                🗑️ Delete
+              </button>
+            )}
           </div>
         </div>
       </div>
