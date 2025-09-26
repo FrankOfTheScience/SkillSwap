@@ -1,8 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿namespace SkillSwap.Domain;
 
-namespace SkillSwap.Domain;
-
-[ExcludeFromCodeCoverage]
 public class Offer
 {
     public int Id { get; set; }

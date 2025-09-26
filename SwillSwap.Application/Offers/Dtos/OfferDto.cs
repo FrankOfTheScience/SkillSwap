@@ -1,8 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿namespace SkillSwap.Application.Offers.Dtos;
 
-namespace SkillSwap.Application.Offers.Dtos;
-
-[ExcludeFromCodeCoverage]
 public class OfferDto
 {
     public int Id { get; set; }
