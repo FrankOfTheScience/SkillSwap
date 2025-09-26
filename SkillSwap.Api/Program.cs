@@ -2,6 +2,7 @@ using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SkillSwap.Api.Dtos;
@@ -38,6 +39,7 @@ internal class Program
                                ?? Environment.GetEnvironmentVariable("SKILLSWAP_DB_CONNECTION");
 
         builder.Services.AddDbContext<SkillSwapDbContext>(options => options.UseNpgsql(connectionString));
+        builder.Services.AddHttpContextAccessor();
         builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<SkillSwapDbContext>());
         builder.Services.AddScoped<IAuthService, AuthService>();
         builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(CreateOfferCommand).Assembly));
@@ -49,6 +51,18 @@ internal class Program
         builder.Services.AddValidatorsFromAssemblyContaining<UpdateOfferCommandValidator>();
         builder.Services.AddAutoMapper(typeof(UserProfile));
         builder.Services.AddValidatorsFromAssemblyContaining<RegisterUserCommandValidator>();
+
+        var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>();
+
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("AllowFrontend", policy =>
+            {
+                policy.WithOrigins(allowedOrigins ?? new[] { "http://localhost:3000" })
+                      .AllowAnyHeader()
+                      .AllowAnyMethod();
+            });
+        });
 
         builder.Services.AddAuthentication(options =>
         {
@@ -67,6 +81,7 @@ internal class Program
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
             };
         });
+        builder.Services.AddAuthorization();
 
         // Build the app
         var app = builder.Build();
@@ -81,7 +96,9 @@ internal class Program
         }
         app.UseHttpsRedirection();
 
+        app.UseCors("AllowFrontend");
         app.UseAuthentication();
+        app.UseAuthorization();
 
         app.Use(async (context, next) =>
         {
@@ -102,21 +119,21 @@ internal class Program
             await DbSeeder.SeedAsync(db);
         }
 
-        // POST /api/register
-        app.MapPost("/register", async (RegisterUserCommand cmd, IMediator mediator) =>
+        // POST /auth/register
+        app.MapPost("auth/register", async (RegisterUserCommand cmd, IMediator mediator) =>
             {
                 var token = await mediator.Send(cmd);
                 return Results.Ok(new { Token = token });
             });
 
-        // POST /api/login
-        app.MapPost("/login", async (LoginUserCommand cmd, IMediator mediator) =>
+        // POST /auth/login
+        app.MapPost("auth/login", async (LoginUserCommand cmd, IMediator mediator) =>
             {
                 var token = await mediator.Send(cmd);
                 return Results.Ok(new { Token = token });
             });
 
-        // GET /api/user/profile
+        // GET /user/profile
         app.MapGet("/user/profile", 
             [Microsoft.AspNetCore.Authorization.Authorize(Roles = "User,Admin")] (ClaimsPrincipal user) =>
             {
@@ -129,7 +146,7 @@ internal class Program
                 });
             });
 
-        // GET /api/offers/{id}
+        // GET /offers/{id}
         app.MapGet("/offers/{id:int}", 
             async (int id, IMediator mediator) =>
             {
@@ -140,22 +157,34 @@ internal class Program
         .Produces<OfferDto>(200)
         .Produces(404);
 
-        // GET /api/offers
-        app.MapGet("/offers", async (int page, int pageSize, IMediator mediator) =>
+        // GET /offers
+        app.MapGet("/offers", async (IMediator mediator, [FromQuery] int? page = 1, [FromQuery] int pageSize = 10) =>
             {
-                var offers = await mediator.Send(new GetOffersQuery(page, pageSize));
+                var offers = await mediator.Send(new GetOffersQuery(page ?? 1, pageSize));
                 return Results.Ok(offers);
             });
 
-        // POST /api/offers
+        // POST /offers
         app.MapPost("/offers",
             [Authorize(Roles = "User,Admin")] async (CreateOfferDto dto, IMediator mediator, IValidator<CreateOfferCommand> validator, ClaimsPrincipal user) =>
             {
-                // Recupera l'utente autenticato
-                var userId = user.FindFirstValue(JwtRegisteredClaimNames.Sub);
+                // Debug: Log all claims
+                foreach (var claim in user.Claims)
+                {
+                    Console.WriteLine($"Claim: {claim.Type} = {claim.Value}");
+                }
 
-                // Forziamo che il CreatedBy venga dal token, non dal DTO
-                var cmd = new CreateOfferCommand(dto.Title, dto.Description, dto.Price, Guid.Parse(userId!));
+                var userId = user.FindFirstValue(JwtRegisteredClaimNames.Sub) 
+                    ?? user.FindFirstValue("sub") 
+                    ?? user.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                if (string.IsNullOrEmpty(userId))
+                {
+                    Console.WriteLine("ERROR: No user ID found in claims!");
+                    return Results.BadRequest("User ID not found in token");
+                }
+
+                var cmd = new CreateOfferCommand(dto.Title, dto.Description, dto.Price, Guid.Parse(userId));
 
                 var validationResult = await validator.ValidateAsync(cmd);
                 if (!validationResult.IsValid)
@@ -169,14 +198,21 @@ internal class Program
         .Produces(400)
         .RequireAuthorization();
 
-        // PUT /api/offers/{id}
+        // PUT /offers/{id}
         app.MapPut("/offers/{id:int}",
             [Authorize(Roles = "User,Admin")] async (int id, UpdateOfferDto dto, IMediator mediator, IValidator<UpdateOfferCommand> validator, ClaimsPrincipal user) =>
             {
-                var userId = user.FindFirstValue(JwtRegisteredClaimNames.Sub);
+                var userId = user.FindFirstValue(JwtRegisteredClaimNames.Sub) 
+                    ?? user.FindFirstValue("sub") 
+                    ?? user.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Results.BadRequest("User ID not found in token");
+                }
 
                 // NB: CreatedBy arriva dal token, non dal DTO
-                var cmd = new UpdateOfferCommand(id, dto.Title, dto.Description, dto.Price, Guid.Parse(userId!));
+                var cmd = new UpdateOfferCommand(id, dto.Title, dto.Description, dto.Price, Guid.Parse(userId));
 
                 var validationResult = await validator.ValidateAsync(cmd);
                 if (!validationResult.IsValid)
@@ -191,16 +227,23 @@ internal class Program
         .Produces(404)
         .RequireAuthorization();
 
-        // DELETE /api/offers/{id}
+        // DELETE /offers/{id}
         app.MapDelete("/offers/{id:int}",
-            [Authorize(Roles = "Admin")] async (int id, IMediator mediator) =>
+            [Authorize(Roles = "User,Admin")] async (int id, IMediator mediator, ClaimsPrincipal user) =>
             {
-                // Solo Admin può cancellare
-                var deleted = await mediator.Send(new DeleteOfferCommand(id));
-                return deleted ? Results.NoContent() : Results.NotFound();
+                try
+                {
+                    var deleted = await mediator.Send(new DeleteOfferCommand(id));
+                    return deleted ? Results.NoContent() : Results.NotFound();
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    return Results.Forbid();
+                }
             })
         .WithName("DeleteOffer")
         .Produces(204)
+        .Produces(403)
         .Produces(404)
         .RequireAuthorization();
 

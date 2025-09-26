@@ -1,5 +1,5 @@
 export interface Offer {
-  id: string;
+  id: number;
   title: string;
   description: string;
   price: number;
@@ -7,8 +7,9 @@ export interface Offer {
 }
 
 export interface User {
-  id: string;
+  id: string;  // This should be string because JWT tokens contain string values
   email: string;
+  displayName: string;
   role: "User" | "Admin";
   token?: string;
 }
