@@ -1,9 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.Diagnostics.CodeAnalysis;
 
 namespace SkillSwap.Domain;
 
-[ExcludeFromCodeCoverage]
 public class User
 {
     [Key]
