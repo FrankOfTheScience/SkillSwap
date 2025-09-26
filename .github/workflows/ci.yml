@@ -9,12 +9,16 @@ on:
     branches:
       - staging
 
+env:
+  NODE_VERSION: '20'
+  DOTNET_VERSION: '8.0.x'
+
 jobs:
   dev-ci:
     if: github.ref == 'refs/heads/development'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -22,38 +26,79 @@ jobs:
       - name: Fetch all tags
         run: git fetch --tags
 
-      - uses: actions/setup-dotnet@v3
+      # Setup .NET
+      - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Setup connection string
-        run: echo "ConnectionStrings__Default=${{ secrets.DEV_CONNECTION_STRING }}" >> $GITHUB_ENV
+      # Setup Node.js for frontend
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/skill-swap-web/package-lock.json
 
-      - name: Restore
+      # Backend build and test
+      - name: Setup backend environment variables
+        run: |
+          echo "ConnectionStrings__DefaultConnection=${{ secrets.SKILLSWAP_DB_CONNECTION }}" >> $GITHUB_ENV
+          echo "Jwt__Key=${{ secrets.SKILLSWAP_JWT_KEY }}" >> $GITHUB_ENV
+          echo "Jwt__Issuer=${{ vars.JWT_ISSUER }}" >> $GITHUB_ENV
+          echo "Jwt__Audience=${{ vars.JWT_AUDIENCE }}" >> $GITHUB_ENV
+
+      - name: Restore backend dependencies
         run: dotnet restore
 
-      - name: Build
+      - name: Build backend
         run: dotnet build --no-restore --configuration Release
 
-      - name: Test with coverage
+      - name: Run backend tests with coverage
         run: |
-          mkdir -p TestResults
-          dotnet test --no-build --configuration Release \
+          dotnet test SkillSwap.Tests/SkillSwap.Tests.csproj \
+            --no-build \
+            --configuration Release \
+            --logger trx \
+            --results-directory TestResults \
             /p:CollectCoverage=true \
             /p:CoverletOutputFormat=opencover \
-            /p:CoverletOutput=TestResults/coverage.opencover.xml
+            /p:CoverletOutput=TestResults/coverage.opencover.xml \
+            /p:Exclude="[*]SkillSwap.*.Migrations.*"
 
-      - name: Upload coverage report
+      - name: Upload backend test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-test-results
+          path: TestResults/
+
+      # Frontend build
+      - name: Install frontend dependencies
+        run: |
+          cd frontend/skill-swap-web
+          npm ci
+
+      - name: Setup frontend environment variables
+        run: |
+          cd frontend/skill-swap-web
+          echo "NEXT_PUBLIC_API_BASE_URL=${{ vars.DEV_API_BASE_URL }}" > .env.production
+          echo "NEXT_PUBLIC_APP_ENV=development" >> .env.production
+
+      - name: Build frontend
+        run: |
+          cd frontend/skill-swap-web
+          npm run build
+
+      - name: Upload frontend build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-report
-          path: TestResults/coverage.opencover.xml
+          name: frontend-build-dev
+          path: frontend/skill-swap-web/.next/
 
   staging-release:
     if: github.ref == 'refs/heads/staging'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -61,33 +106,75 @@ jobs:
       - name: Fetch all tags
         run: git fetch --tags
 
-      - uses: actions/setup-dotnet@v3
+      # Setup .NET
+      - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: ${{ env.DOTNET_VERSION }}
 
-      - name: Setup connection string
-        run: echo "ConnectionStrings__Default=${{ secrets.STAGING_CONNECTION_STRING }}" >> $GITHUB_ENV
+      # Setup Node.js for frontend
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/skill-swap-web/package-lock.json
 
-      - name: Restore
+      # Backend build and test
+      - name: Setup backend environment variables
+        run: |
+          echo "ConnectionStrings__DefaultConnection=${{ secrets.SKILLSWAP_DB_CONNECTION_STAGING }}" >> $GITHUB_ENV
+          echo "Jwt__Key=${{ secrets.SKILLSWAP_JWT_KEY }}" >> $GITHUB_ENV
+          echo "Jwt__Issuer=${{ vars.JWT_ISSUER }}" >> $GITHUB_ENV
+          echo "Jwt__Audience=${{ vars.JWT_AUDIENCE }}" >> $GITHUB_ENV
+
+      - name: Restore backend dependencies
         run: dotnet restore
 
-      - name: Build
+      - name: Build backend
         run: dotnet build --no-restore --configuration Release
 
-      - name: Test with coverage
+      - name: Run backend tests with coverage
         run: |
-          mkdir -p TestResults
-          dotnet test --no-build --configuration Release \
+          dotnet test SkillSwap.Tests/SkillSwap.Tests.csproj \
+            --no-build \
+            --configuration Release \
+            --logger trx \
+            --results-directory TestResults \
             /p:CollectCoverage=true \
             /p:CoverletOutputFormat=opencover \
-            /p:CoverletOutput=TestResults/coverage.opencover.xml
+            /p:CoverletOutput=TestResults/coverage.opencover.xml \
+            /p:Exclude="[*]SkillSwap.*.Migrations.*"
 
-      - name: Upload coverage report
+      - name: Upload backend test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-test-results-staging
+          path: TestResults/
+
+      # Frontend build
+      - name: Install frontend dependencies
+        run: |
+          cd frontend/skill-swap-web
+          npm ci
+
+      - name: Setup frontend environment variables
+        run: |
+          cd frontend/skill-swap-web
+          echo "NEXT_PUBLIC_API_BASE_URL=${{ vars.STAGING_API_BASE_URL }}" > .env.production
+          echo "NEXT_PUBLIC_APP_ENV=staging" >> .env.production
+
+      - name: Build frontend
+        run: |
+          cd frontend/skill-swap-web
+          npm run build
+
+      - name: Upload frontend build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-report
-          path: TestResults/coverage.opencover.xml
+          name: frontend-build-staging
+          path: frontend/skill-swap-web/.next/
 
+      # GitHub CLI setup for release process
       - name: Install GitHub CLI
         run: sudo apt-get install -y gh jq
 

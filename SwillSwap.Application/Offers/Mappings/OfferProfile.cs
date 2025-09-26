@@ -10,7 +10,6 @@ public class OfferProfile : Profile
     {
         CreateMap<Offer, OfferDto>();
         CreateMap<CreateOfferCommand, Offer>()
-            .ForMember(dest => dest.Id, opt => opt.Ignore())
-            .ForMember(dest => dest.CreatedBy, opt => opt.Ignore());
+            .ForMember(dest => dest.Id, opt => opt.Ignore());
     }
 }

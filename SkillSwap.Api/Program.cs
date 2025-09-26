@@ -36,6 +36,7 @@ internal class Program
         builder.Services.AddSwaggerGen();
 
         var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+                               ?? Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
                                ?? Environment.GetEnvironmentVariable("SKILLSWAP_DB_CONNECTION");
 
         builder.Services.AddDbContext<SkillSwapDbContext>(options => options.UseNpgsql(connectionString));
@@ -52,13 +53,15 @@ internal class Program
         builder.Services.AddAutoMapper(typeof(UserProfile));
         builder.Services.AddValidatorsFromAssemblyContaining<RegisterUserCommandValidator>();
 
-        var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>();
+        var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>()
+                           ?? Environment.GetEnvironmentVariable("ALLOWED_ORIGINS")?.Split(',')
+                           ?? new[] { "http://localhost:3000" };
 
         builder.Services.AddCors(options =>
         {
             options.AddPolicy("AllowFrontend", policy =>
             {
-                policy.WithOrigins(allowedOrigins ?? new[] { "http://localhost:3000" })
+                policy.WithOrigins(allowedOrigins)
                       .AllowAnyHeader()
                       .AllowAnyMethod();
             });
@@ -71,14 +74,31 @@ internal class Program
         })
         .AddJwtBearer(options =>
         {
+            var jwtKey = builder.Configuration["Jwt:Key"] 
+                        ?? Environment.GetEnvironmentVariable("Jwt__Key")
+                        ?? Environment.GetEnvironmentVariable("SKILLSWAP_JWT_KEY");
+                        
+            var jwtIssuer = builder.Configuration["Jwt:Issuer"]
+                           ?? Environment.GetEnvironmentVariable("Jwt__Issuer")
+                           ?? "SkillSwap";
+                           
+            var jwtAudience = builder.Configuration["Jwt:Audience"]
+                             ?? Environment.GetEnvironmentVariable("Jwt__Audience")
+                             ?? "SkillSwapUsers";
+
+            if (string.IsNullOrEmpty(jwtKey))
+            {
+                throw new InvalidOperationException("JWT Key is required. Set it in configuration or environment variables.");
+            }
+
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true,
                 ValidateAudience = true,
                 ValidateIssuerSigningKey = true,
-                ValidIssuer = builder.Configuration["Jwt:Issuer"],
-                ValidAudience = builder.Configuration["Jwt:Audience"],
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+                ValidIssuer = jwtIssuer,
+                ValidAudience = jwtAudience,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
             };
         });
         builder.Services.AddAuthorization();
