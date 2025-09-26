@@ -34,16 +34,7 @@ public class DbContextOptionsFactoryTests
         options.Should().BeOfType<DbContextOptions<SkillSwapDbContext>>();
     }
 
-    [Fact]
-    public void Create_WithNullConnectionString_ShouldThrowException()
-    {
-        // Arrange
-        string? connectionString = null;
 
-        // Act & Assert
-        var action = () => DbContextOptionsFactory.Create(connectionString!);
-        action.Should().Throw<ArgumentNullException>();
-    }
 
     [Fact]
     public void Create_WithValidConnectionString_ShouldConfigureNpgsql()

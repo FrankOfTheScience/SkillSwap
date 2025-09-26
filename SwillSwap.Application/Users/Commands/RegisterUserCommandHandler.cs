@@ -25,7 +25,7 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, s
     {
         var validation = await _validator.ValidateAsync(request, ct);
         if (!validation.IsValid)
-            throw new ValidationException(validation.Errors);
+            throw new FluentValidation.ValidationException(validation.Errors);
 
         if (await _db.Users.AnyAsync(u => u.Email == request.Email, ct))
             throw new Exception("Email already registered");

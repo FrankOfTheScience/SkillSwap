@@ -7,7 +7,7 @@ namespace SkillSwap.Tests.Infrastructure;
 
 public class SkillSwapDbContextTests
 {
-    private DbContextOptions<SkillSwapDbContext> CreateInMemoryDbContextOptions(string databaseName = null)
+    private DbContextOptions<SkillSwapDbContext> CreateInMemoryDbContextOptions(string? databaseName = null)
     {
         databaseName ??= Guid.NewGuid().ToString();
         return new DbContextOptionsBuilder<SkillSwapDbContext>()
@@ -153,7 +153,7 @@ public class SkillSwapDbContextTests
 
         // Act & Assert
         await context.Invoking(c => c.SaveChangesAsync(cts.Token))
-            .Should().ThrowAsync<OperationCancelledException>();
+            .Should().ThrowAsync<System.OperationCanceledException>();
     }
 
     [Fact]
@@ -243,14 +243,13 @@ public class SkillSwapDbContextTests
     {
         // Arrange
         var options = CreateInMemoryDbContextOptions();
-        var bookingId = Guid.NewGuid();
-        var userId = Guid.NewGuid();
+        var bookingId = 1;
+        var userId = 1;
         var booking = new Booking
         {
             Id = bookingId,
             UserId = userId,
             OfferId = 1,
-            BookingDate = DateTime.UtcNow,
             Status = "Confirmed"
         };
 

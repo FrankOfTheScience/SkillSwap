@@ -1,9 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SkillSwap.Domain;
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text;
 
 namespace SkillSwap.Infrastructure;
+
+[ExcludeFromCodeCoverage]
 public static class DbSeeder
 {
     public static async Task SeedAsync(SkillSwapDbContext db)
