@@ -146,7 +146,7 @@ internal class Program
             });
 
         // POST /auth/login
-        app.MapPost("auth/login", async (LoginUserCommand cmd, IMediator mediato
+        app.MapPost("auth/login", async (LoginUserCommand cmd, IMediator mediator) =>
             {
                 var token = await mediator.Send(cmd);
                 return Results.Ok(new { Token = token });
