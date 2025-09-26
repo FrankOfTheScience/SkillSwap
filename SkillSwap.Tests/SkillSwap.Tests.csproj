@@ -7,11 +7,21 @@
 
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    
+    <!-- Coverage configuration -->
+    <CollectCoverage>true</CollectCoverage>
+    <CoverletOutputFormat>opencover</CoverletOutputFormat>
+    <CoverletOutput>TestResults/</CoverletOutput>
+    <Exclude>[*]SkillSwap.*.Migrations.*</Exclude>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.1" />
     <PackageReference Include="coverlet.collector" Version="6.0.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.msbuild" Version="6.0.4">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -24,6 +34,7 @@
 	<PackageReference Include="NSubstitute" Version="5.3.0" />
 	<PackageReference Include="FluentAssertions" Version="8.6.0" />
 	<PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.9" />
+	<PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.9" />
   </ItemGroup>
 
   <ItemGroup>

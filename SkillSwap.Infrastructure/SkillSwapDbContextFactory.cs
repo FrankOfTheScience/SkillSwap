@@ -9,7 +9,9 @@ public class SkillSwapDbContextFactory : IDesignTimeDbContextFactory<SkillSwapDb
     public SkillSwapDbContext CreateDbContext(string[] args)
     {
         var connectionString = Environment.GetEnvironmentVariable("SKILLSWAP_DB_CONNECTION")
-                             ?? "Host=localhost;Port=5432;Database=skillswap;Username=postgres;Password=i4M'3!6XexL[";
+                             ?? Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
+                             ?? throw new InvalidOperationException("Database connection string not found. Set SKILLSWAP_DB_CONNECTION environment variable.");
+
 
         return new SkillSwapDbContext(DbContextOptionsFactory.Create(connectionString));
     }

@@ -35,7 +35,7 @@ public class CreateOfferHandlerTests
 
         var handler = new CreateOfferCommandHandler(ctx, mapper, accessor);
 
-        var cmd = new CreateOfferCommand("newTitle", "newDesc", 100m, Guid.NewGuid());
+        var cmd = new CreateOfferCommand("newTitle", "newDesc", 100m, userId); // Use the same userId here
         var offerId = await handler.Handle(cmd, CancellationToken.None);
 
         var offer = await ctx.Offers.FindAsync(offerId);

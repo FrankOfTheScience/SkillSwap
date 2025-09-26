@@ -22,12 +22,8 @@ public class CreateOfferCommandHandler : IRequestHandler<CreateOfferCommand, int
 
     public async Task<int> Handle(CreateOfferCommand request, CancellationToken cancellationToken)
     {
-        var user = _httpContextAccessor.HttpContext?.User
-                   ?? throw new UnauthorizedAccessException("Utente non autenticato");
-        var userId = Guid.Parse(user.FindFirstValue(JwtRegisteredClaimNames.Sub)!);
-
         var offer = _mapper.Map<Offer>(request);
-        offer.CreatedBy = userId;
+        // The CreatedBy is already set from the command parameter via AutoMapper
 
         _db.Offers.Add(offer);
         await _db.SaveChangesAsync(cancellationToken);
