@@ -21,7 +21,7 @@ public class LoginUserCommandHandler : IRequestHandler<LoginUserCommand, string>
     {
         var validation = await _validator.ValidateAsync(request, ct);
         if (!validation.IsValid)
-            throw new ValidationException(validation.Errors);
+            throw new FluentValidation.ValidationException(validation.Errors);
 
         var user = await _db.Users.SingleOrDefaultAsync(u => u.Email == request.Email, ct);
         if (user == null) throw new Exception("User not found");
