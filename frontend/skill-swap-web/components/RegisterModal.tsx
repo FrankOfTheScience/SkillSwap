@@ -17,7 +17,6 @@ export default function RegisterModal({ isOpen, onClose, onSuccess, onSwitchToLo
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [role, setRole] = useState<"User"|"Admin">("User");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -43,7 +42,7 @@ export default function RegisterModal({ isOpen, onClose, onSuccess, onSwitchToLo
     setError("");
 
     try {
-      await register({ email, displayName, password, role });
+      await register({ email, displayName, password });
       onSuccess();
       // Reset form
       resetForm();
@@ -61,7 +60,6 @@ export default function RegisterModal({ isOpen, onClose, onSuccess, onSwitchToLo
     setDisplayName("");
     setPassword("");
     setConfirmPassword("");
-    setRole("User");
     setError("");
     setShowPassword(false);
     setShowConfirmPassword(false);
@@ -171,22 +169,6 @@ export default function RegisterModal({ isOpen, onClose, onSuccess, onSwitchToLo
                 </button>
               </div>
             </div>
-          </div>
-
-          <div>
-            <label htmlFor="role" className="block text-sm font-bold text-gray-800 mb-2">
-              Account Type
-            </label>
-            <select
-              id="role"
-              value={role}
-              onChange={e => setRole(e.target.value as "User" | "Admin")}
-              className="w-full px-4 py-3 border-2 border-gray-400 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors bg-white text-gray-900"
-              disabled={isSubmitting}
-            >
-              <option value="User">User</option>
-              <option value="Admin">Admin</option>
-            </select>
           </div>
 
           <div className="flex gap-4 pt-4">

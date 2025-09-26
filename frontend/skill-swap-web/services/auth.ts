@@ -1,18 +1,31 @@
 import { jwtDecode } from "jwt-decode";
 import api from "./api";
 import { User } from "../types";
+import { getErrorMessage } from "../utils/errorHandler";
 
 export interface LoginData { email: string; password: string; }
-export interface RegisterData { email: string; displayName: string; password: string; role: "User" | "Admin"; }
+export interface RegisterData { email: string; displayName: string; password: string; }
 
 export const login = async (data: LoginData): Promise<User> => {
-  const res = await api.post("/auth/login", data);
-  localStorage.setItem("token", res.data.token);
-  return getCurrentUser()!;
+  try {
+    const res = await api.post("/auth/login", data);
+    localStorage.setItem("token", res.data.token);
+    return getCurrentUser()!;
+  } catch (error) {
+    // Re-throw with friendly error message
+    const friendlyMessage = getErrorMessage(error);
+    throw new Error(friendlyMessage);
+  }
 };
 
 export const register = async (data: RegisterData) => {
-  await api.post("/auth/register", data);
+  try {
+    await api.post("/auth/register", data);
+  } catch (error) {
+    // Re-throw with friendly error message
+    const friendlyMessage = getErrorMessage(error);
+    throw new Error(friendlyMessage);
+  }
 };
 
 export const logout = () => localStorage.removeItem("token");

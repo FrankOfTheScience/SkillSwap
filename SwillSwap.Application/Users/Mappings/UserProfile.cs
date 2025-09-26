@@ -11,6 +11,7 @@ public class UserProfile : Profile
         CreateMap<RegisterUserCommand, User>()
             .ForMember(dest => dest.Id, opt => opt.MapFrom(_ => Guid.NewGuid()))
             .ForMember(dest => dest.PasswordHash, opt => opt.Ignore())
-            .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow));
+            .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
+            .ForMember(dest => dest.Roles, opt => opt.MapFrom(_ => new List<string> { "User" }));
     }
 }

@@ -177,11 +177,38 @@ internal class Program
         .Produces(404);
 
         // GET /offers
-        app.MapGet("/offers", async (IMediator mediator, [FromQuery] int? page = 1, [FromQuery] int pageSize = 10) =>
-            {
-                var offers = await mediator.Send(new GetOffersQuery(page ?? 1, pageSize));
-                return Results.Ok(offers);
-            });
+        app.MapGet("/offers", async (
+            IMediator mediator, 
+            ClaimsPrincipal user,
+            [FromQuery] int? page = 1, 
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? search = null,
+            [FromQuery] decimal? maxBudget = null,
+            [FromQuery] bool? showOnlyMyOffers = null,
+            [FromQuery] string? sortBy = "id",
+            [FromQuery] bool sortDescending = false
+        ) =>
+        {
+            var userId = user.Identity?.IsAuthenticated == true 
+                ? user.FindFirstValue(JwtRegisteredClaimNames.Sub) 
+                  ?? user.FindFirstValue("sub") 
+                  ?? user.FindFirstValue(ClaimTypes.NameIdentifier)
+                : null;
+
+            var query = new GetOffersQuery(
+                page ?? 1, 
+                Math.Min(pageSize, 50), // Max 50 items per page
+                search,
+                maxBudget,
+                showOnlyMyOffers,
+                sortBy ?? "id",
+                sortDescending,
+                userId
+            );
+
+            var result = await mediator.Send(query);
+            return Results.Ok(result);
+        });
 
         // POST /offers
         app.MapPost("/offers",
