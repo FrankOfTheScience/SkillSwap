@@ -79,6 +79,18 @@ jobs:
           cd frontend/skill-swap-web
           npm ci
 
+      - name: Run frontend tests
+        run: |
+          cd frontend/skill-swap-web
+          npm run test -- --coverage --watchAll=false
+
+      - name: Upload frontend test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-test-results
+          path: frontend/skill-swap-web/coverage/
+
       - name: Setup frontend environment variables
         run: |
           cd frontend/skill-swap-web
@@ -95,32 +107,6 @@ jobs:
         with:
           name: frontend-build-dev
           path: frontend/skill-swap-web/.next/
-      - uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: 8.0.x
-
-      - name: Setup connection string
-        run: echo "ConnectionStrings__Default=${{ secrets.DEV_CONNECTION_STRING }}" >> $GITHUB_ENV
-
-      - name: Restore
-        run: dotnet restore
-
-      - name: Build
-        run: dotnet build --no-restore --configuration Release
-
-      - name: Test with coverage
-        run: |
-          mkdir -p TestResults
-          dotnet test --no-build --configuration Release \
-            /p:CollectCoverage=true \
-            /p:CoverletOutputFormat=opencover \
-            /p:CoverletOutput=TestResults/coverage.opencover.xml
-
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: TestResults/coverage.opencover.xml
 
 
   staging-release:
@@ -187,6 +173,18 @@ jobs:
           cd frontend/skill-swap-web
           npm ci
 
+      - name: Run frontend tests
+        run: |
+          cd frontend/skill-swap-web
+          npm run test -- --coverage --watchAll=false
+
+      - name: Upload frontend test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-test-results-staging
+          path: frontend/skill-swap-web/coverage/
+
       - name: Setup frontend environment variables
         run: |
           cd frontend/skill-swap-web
@@ -204,34 +202,7 @@ jobs:
           name: frontend-build-staging
           path: frontend/skill-swap-web/.next/
 
-      # GitHub CLI setup for
-      - uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: 8.0.x
-
-      - name: Setup connection string
-        run: echo "ConnectionStrings__Default=${{ secrets.STAGING_CONNECTION_STRING }}" >> $GITHUB_ENV
-
-      - name: Restore
-        run: dotnet restore
-
-      - name: Build
-        run: dotnet build --no-restore --configuration Release
-
-      - name: Test with coverage
-        run: |
-          mkdir -p TestResults
-          dotnet test --no-build --configuration Release \
-            /p:CollectCoverage=true \
-            /p:CoverletOutputFormat=opencover \
-            /p:CoverletOutput=TestResults/coverage.opencover.xml
-
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: TestResults/coverage.opencover.xml
-
+      # GitHub CLI setup for release management
       - name: Install GitHub CLI
         run: sudo apt-get install -y gh jq
 
@@ -244,30 +215,134 @@ jobs:
 
       - name: Calculate next semver
         run: |
-          LAST_TAG=$(git describe --tags --abbrev=0 || echo "v0.0.0")
-          IFS='.' read -r MAJOR MINOR PATCH <<<"${LAST_TAG#v}"
+          # Ensure we have all tags
+          git fetch --tags --force
+          
+          # Get the latest tag, handling the case where no tags exist
+          LAST_TAG=$(git tag -l | sort -V | tail -n 1)
+          if [ -z "$LAST_TAG" ]; then
+            LAST_TAG="v0.0.0"
+          fi
+          
+          echo "Last tag found: $LAST_TAG"
+          echo "Bump type: $BUMP_TYPE"
+          
+          # Extract version numbers, removing 'v' prefix
+          VERSION=${LAST_TAG#v}
+          IFS='.' read -r MAJOR MINOR PATCH <<<"$VERSION"
+          
+          # Ensure all components are numbers (handle malformed tags)
+          MAJOR=${MAJOR:-0}
+          MINOR=${MINOR:-0}
+          PATCH=${PATCH:-0}
+          
+          # Apply version bump
           case $BUMP_TYPE in
             major)
-              MAJOR=$((MAJOR+1)); MINOR=0; PATCH=0;;
+              MAJOR=$((MAJOR+1))
+              MINOR=0
+              PATCH=0
+              ;;
             minor)
-              MINOR=$((MINOR+1)); PATCH=0;;
+              MINOR=$((MINOR+1))
+              PATCH=0
+              ;;
             patch|*)
-              PATCH=$((PATCH+1));;
+              PATCH=$((PATCH+1))
+              ;;
           esac
+          
           NEW_TAG="v$MAJOR.$MINOR.$PATCH"
           echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
-          echo "Next version: $NEW_TAG"
+          echo "Calculated next version: $NEW_TAG (from $LAST_TAG with $BUMP_TYPE bump)"
 
-      - name: Generate release note
+      - name: Generate release notes and update changelog
         run: |
           export GH_TOKEN=${{ github.token }}
+          
+          # Get PR information
           PR_NUMBER=$(gh pr list --state merged --base staging --json number -L 1 | jq -r '.[0].number')
           PR_TITLE=$(gh pr view $PR_NUMBER --json title -q '.title')
           PR_BODY=$(gh pr view $PR_NUMBER --json body -q '.body')
-          DATE=$(date +%Y-%m-%d)
-          printf "## Release Note (%s)\n\n**PR #%s** - %s\n\n%s\n\nReleased on %s\n" \
-            "$NEW_TAG" "$PR_NUMBER" "$PR_TITLE" "$PR_BODY" "$DATE" > release_note.md
+          PR_AUTHOR=$(gh pr view $PR_NUMBER --json author -q '.author.login')
+          
+          # Current date
+          DATE=$(date +"%Y-%m-%d")
+          
+          # Generate release notes
+          cat > release_note.md << EOF
+          # Release $NEW_TAG
+          
+          **Released on:** $DATE  
+          **Pull Request:** #$PR_NUMBER  
+          **Author:** @$PR_AUTHOR  
+          **Type:** $BUMP_TYPE release
+          
+          ## What's New
+          
+          **$PR_TITLE**
+          
+          $PR_BODY
+          
+          ---
+          
+          *This release was automatically generated from PR #$PR_NUMBER*
+          EOF
+          
+          echo "Generated release notes:"
           cat release_note.md
+          
+          # Create temporary changelog entry
+          cat > temp_changelog.md << EOF
+          ## [$NEW_TAG] - $DATE
+          
+          ### $BUMP_TYPE Release
+          
+          **Pull Request:** [#$PR_NUMBER](https://github.com/${{ github.repository }}/pull/$PR_NUMBER)  
+          **Author:** [@$PR_AUTHOR](https://github.com/$PR_AUTHOR)
+          
+          #### Changes
+          
+          $PR_BODY
+          
+          ---
+          
+          EOF
+          
+          # Update CHANGELOG.md by prepending new content
+          if [ -f CHANGELOG.md ]; then
+            # Create backup
+            cp CHANGELOG.md CHANGELOG.md.bak
+            
+            # Check if this version already exists in changelog
+            if ! grep -q "## \[$NEW_TAG\]" CHANGELOG.md; then
+              # Add new entry at the top, preserving existing content
+              {
+                echo "# Changelog"
+                echo ""
+                echo "All notable changes to this project will be documented in this file."
+                echo ""
+                cat temp_changelog.md
+                # Skip the header lines and add existing content
+                tail -n +4 CHANGELOG.md 2>/dev/null || echo ""
+              } > CHANGELOG.md.new
+              mv CHANGELOG.md.new CHANGELOG.md
+            else
+              echo "Version $NEW_TAG already exists in CHANGELOG.md, skipping update"
+            fi
+          else
+            # Create new CHANGELOG.md
+            {
+              echo "# Changelog"
+              echo ""
+              echo "All notable changes to this project will be documented in this file."
+              echo ""
+              cat temp_changelog.md
+            } > CHANGELOG.md
+          fi
+          
+          # Cleanup
+          rm -f temp_changelog.md
 
       - name: Push tag
         run: |
@@ -282,28 +357,37 @@ jobs:
             git push origin $NEW_TAG
           fi
 
-      - name: Update CHANGELOG
+      - name: Commit and push changelog
         run: |
           export PAT_TOKEN=${{ secrets.SKILLSWAP_PAT }}
           git config user.name "FrankOfTheScience"
           git config user.email "FrankOfTheScience@users.noreply.github.com"
           git remote set-url origin https://$PAT_TOKEN@github.com/${{ github.repository }}.git
-          echo "" >> CHANGELOG.md
-          echo "## $NEW_TAG - $(date +%Y-%m-%d)" >> CHANGELOG.md
-          cat release_note.md >> CHANGELOG.md
-          git add CHANGELOG.md
-          git commit -m "docs: update changelog for $NEW_TAG [skip ci]" || echo "No changes"
-          git push origin staging
+          
+          # Check if CHANGELOG.md was actually modified
+          if git diff --quiet CHANGELOG.md; then
+            echo "No changes to CHANGELOG.md, skipping commit"
+          else
+            git add CHANGELOG.md
+            git commit -m "docs: update changelog for $NEW_TAG [skip ci]"
+            git push origin staging
+            echo "CHANGELOG.md updated and pushed"
+          fi
 
-      - name: Create GitHub Release (optional)
+      - name: Create GitHub Release
         run: |
           export PAT_TOKEN=${{ secrets.SKILLSWAP_PAT }}
           export GH_TOKEN=$PAT_TOKEN
-          # Controlla se la release esiste già
+          
+          # Check if the release already exists
           if gh release view $NEW_TAG >/dev/null 2>&1; then
-            echo "Release $NEW_TAG already exists, skipping creation"
+            echo "Release $NEW_TAG already exists, updating..."
+            gh release edit $NEW_TAG --notes-file release_note.md
           else
-            gh release create $NEW_TAG release_note.md \
-              --title "$NEW_TAG" \
-              --notes-file release_note.md
+            echo "Creating new release $NEW_TAG..."
+            gh release create $NEW_TAG \
+              --title "Release $NEW_TAG" \
+              --notes-file release_note.md \
+              --draft=false \
+              --prerelease=false
           fi
