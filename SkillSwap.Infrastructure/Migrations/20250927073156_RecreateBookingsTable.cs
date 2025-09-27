@@ -1,12 +1,14 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using System.Diagnostics.CodeAnalysis;
 
 #nullable disable
 
 namespace SkillSwap.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class RecreateBookingsTable : Migration
+    [ExcludeFromCodeCoverage]
+    partial class RecreateBookingsTable : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -83,3 +85,5 @@ namespace SkillSwap.Infrastructure.Migrations
         }
     }
 }
+
+

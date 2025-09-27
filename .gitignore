@@ -383,3 +383,7 @@ FodyWeavers.xsd
 *.db
 *.sqlite
 *.sqlite3
+
+# Stripe CLI (should not be committed)
+stripe-cli/
+stripe-cli.zip

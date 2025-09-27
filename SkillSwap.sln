@@ -5,7 +5,7 @@ VisualStudioVersion = 17.14.36429.23
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkillSwap.Api", "SkillSwap.Api\SkillSwap.Api.csproj", "{5804DAD4-BCBF-4CFE-BBB2-7CD95CDF199B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkillSwap.Application", "SwillSwap.Application\SkillSwap.Application.csproj", "{040C1D99-9D94-4EA8-98B6-29DC0D8E6F31}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkillSwap.Application", "SkillSwap.Application\SkillSwap.Application.csproj", "{040C1D99-9D94-4EA8-98B6-29DC0D8E6F31}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkillSwap.Domain", "SkillSwap.Domain\SkillSwap.Domain.csproj", "{2AF5BEE4-D1E3-403A-A120-CEBCEE60D794}"
 EndProject

@@ -4,6 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>SkillSwap.Api</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -28,7 +29,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SkillSwap.Infrastructure\SkillSwap.Infrastructure.csproj" />
-    <ProjectReference Include="..\SwillSwap.Application\SkillSwap.Application.csproj" />
+    <ProjectReference Include="..\SkillSwap.Application\SkillSwap.Application.csproj" />
   </ItemGroup>
 
 </Project>

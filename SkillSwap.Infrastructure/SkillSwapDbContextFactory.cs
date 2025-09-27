@@ -1,7 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore.Design;
+using System.Diagnostics.CodeAnalysis;
 
 namespace SkillSwap.Infrastructure;
 
+[ExcludeFromCodeCoverage]
 public class SkillSwapDbContextFactory : IDesignTimeDbContextFactory<SkillSwapDbContext>
 {
     public SkillSwapDbContext CreateDbContext(string[] args)

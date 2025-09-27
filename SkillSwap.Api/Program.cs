@@ -37,6 +37,9 @@ internal class Program
 
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
+        
+        // Add controller support for webhook and booking endpoints
+        builder.Services.AddControllers();
 
         var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
                                ?? Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
@@ -51,6 +54,7 @@ internal class Program
         // Configure Stripe
         builder.Services.Configure<SkillSwap.Api.Configuration.StripeSettings>(builder.Configuration.GetSection("Stripe"));
         builder.Services.AddScoped<SkillSwap.Application.Common.Interfaces.IStripeService, SkillSwap.Api.Services.StripeService>();
+        builder.Services.AddScoped<SkillSwap.Application.Common.Interfaces.IStripeEventParser, SkillSwap.Api.Services.StripeEventParser>();
 
 
         // Register validators and mappers
@@ -375,6 +379,9 @@ internal class Program
         .Produces(401)
         .Produces(500)
         .RequireAuthorization();
+
+        // Map controllers for webhooks and booking endpoints
+        app.MapControllers();
 
         app.Run();
     }

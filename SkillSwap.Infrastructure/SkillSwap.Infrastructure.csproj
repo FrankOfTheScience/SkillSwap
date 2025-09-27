@@ -24,7 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SkillSwap.Domain\SkillSwap.Domain.csproj" />
-    <ProjectReference Include="..\SwillSwap.Application\SkillSwap.Application.csproj" />
+    <ProjectReference Include="..\SkillSwap.Application\SkillSwap.Application.csproj" />
   </ItemGroup>
 
 </Project>

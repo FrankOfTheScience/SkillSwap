@@ -1,10 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
+using System.Diagnostics.CodeAnalysis;
 
 #nullable disable
 
 namespace SkillSwap.Infrastructure.Migrations
 {
     /// <inheritdoc />
+    [ExcludeFromCodeCoverage]
     public partial class ModifiedUser : Migration
     {
         /// <inheritdoc />
@@ -20,3 +22,4 @@ namespace SkillSwap.Infrastructure.Migrations
         }
     }
 }
+
