@@ -339,6 +339,9 @@ internal class Program
                     var stripeConfig = configuration.GetSection("Stripe");
                     var successUrl = stripeConfig["CheckoutUrls:SuccessUrl"] ?? "http://localhost:3000/booking/success?session_id={CHECKOUT_SESSION_ID}";
                     var cancelUrl = stripeConfig["CheckoutUrls:CancelUrl"] ?? "http://localhost:3000/booking/cancel";
+                    
+                    // Add booking ID to the success URL
+                    successUrl = successUrl + "&booking_id=" + bookingId;
 
                     // Get booking details to get the amount
                     using var scope = app.Services.CreateScope();

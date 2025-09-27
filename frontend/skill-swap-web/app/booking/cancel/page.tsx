@@ -10,7 +10,12 @@ export default function BookingCancelPage() {
   };
 
   const handleTryAgain = () => {
-    router.back();
+    // Go back to the previous page where they can try booking again
+    if (window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/");
+    }
   };
 
   return (
