@@ -366,3 +366,24 @@ FodyWeavers.xsd
 **/appsettings.Development.json
 **/.env.local
 **/secrets.json
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# User secrets and configuration
+**/appsettings.*.local.json
+**/appsettings.secrets.json
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Stripe CLI (should not be committed)
+stripe-cli/
+stripe-cli.zip

@@ -6,6 +6,8 @@ import Link from "next/link";
 import DeleteConfirmModal from "./DeleteConfirmModal";
 import ErrorDisplay from "./ErrorDisplay";
 import { getErrorMessage } from "../utils/errorHandler";
+import { createCheckoutSession, redirectToCheckout } from "../services/booking";
+import Toast, { useToast } from "./Toast";
 
 interface OfferListProps {
   user: User | null;
@@ -40,6 +42,9 @@ export default function OfferList({ user }: OfferListProps) {
   const [sortDescending, setSortDescending] = useState(false);
   
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [bookingLoading, setBookingLoading] = useState<Record<number, boolean>>({});
+  const [bookingError, setBookingError] = useState<Record<number, string>>({});
+  const { toast, showToast, hideToast } = useToast();
   
   const [deleteModal, setDeleteModal] = useState<{isOpen: boolean, offer: Offer | null}>({
     isOpen: false,
@@ -72,7 +77,7 @@ export default function OfferList({ user }: OfferListProps) {
 
   useEffect(() => {
     loadOffers();
-  }, [page, pageSize, search, maxBudget, showOnlyMyOffers, sortBy, sortDescending]);
+  }, [page, pageSize, search, maxBudget, showOnlyMyOffers, sortBy, sortDescending]); // loadOffers is recreated on every render, so we omit it to avoid infinite loops
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,6 +130,38 @@ export default function OfferList({ user }: OfferListProps) {
     return user?.role === "Admin" || (user as { roles?: string[] })?.roles?.includes("Admin");
   };
 
+  const handleBookOffer = async (offer: Offer) => {
+    if (!user) {
+      // This shouldn't happen as the button is only shown when user is logged in
+      return;
+    }
+
+    // Clear any previous error for this offer
+    setBookingError(prev => ({ ...prev, [offer.id]: "" }));
+    setBookingLoading(prev => ({ ...prev, [offer.id]: true }));
+
+    try {
+      const checkoutSession = await createCheckoutSession({
+        offerId: offer.id,
+        userId: user.id
+      });
+
+      showToast(`Redirecting to payment for "${offer.title}"...`, 'info', 2000);
+      
+      // Small delay to show the toast before redirect
+      setTimeout(() => {
+        redirectToCheckout(checkoutSession.checkoutUrl);
+      }, 500);
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      setBookingError(prev => ({ ...prev, [offer.id]: errorMessage }));
+      showToast(`Booking failed: ${errorMessage}`, 'error');
+      console.error("Booking failed:", error);
+    } finally {
+      setBookingLoading(prev => ({ ...prev, [offer.id]: false }));
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Filters Section */}
@@ -140,7 +177,7 @@ export default function OfferList({ user }: OfferListProps) {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search in titles and descriptions..."
-                className="flex-1 px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="flex-1 px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500"
               />
               <button
                 type="submit"
@@ -161,7 +198,7 @@ export default function OfferList({ user }: OfferListProps) {
               value={maxBudget || ""}
               onChange={(e) => handleBudgetChange(e.target.value)}
               placeholder="Any budget"
-              className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500"
             />
           </div>
 
@@ -176,7 +213,7 @@ export default function OfferList({ user }: OfferListProps) {
                   setShowOnlyMyOffers(value === "all" ? undefined : value === "mine");
                   setPage(1);
                 }}
-                className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
               >
                 <option value="all">All Offers</option>
                 <option value="mine">My Offers</option>
@@ -192,7 +229,7 @@ export default function OfferList({ user }: OfferListProps) {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="flex-1 px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="flex-1 px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
               >
                 <option value="id">Date Created</option>
                 <option value="title">Title</option>
@@ -289,9 +326,40 @@ export default function OfferList({ user }: OfferListProps) {
                           </button>
                         </>
                       ) : user ? (
-                        <button className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-6 py-2 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-md flex items-center gap-2">
-                          📅 Book now
-                        </button>
+                        <div className="flex flex-col gap-2">
+                          <button 
+                            onClick={() => handleBookOffer(offer)}
+                            disabled={bookingLoading[offer.id]}
+                            className={`px-6 py-2 rounded-lg font-semibold transition-all duration-200 transform shadow-md flex items-center gap-2 justify-center ${
+                              bookingLoading[offer.id]
+                                ? "bg-gray-400 cursor-not-allowed"
+                                : "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white hover:scale-105"
+                            }`}
+                          >
+                            {bookingLoading[offer.id] ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                Processing...
+                              </>
+                            ) : (
+                              <>� Book for €{offer.price}</>
+                            )}
+                          </button>
+                          {bookingError[offer.id] && (
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-2 text-red-700 text-sm">
+                              <div className="flex items-center gap-2">
+                                <span>❌</span>
+                                <span>{bookingError[offer.id]}</span>
+                              </div>
+                              <button 
+                                onClick={() => setBookingError(prev => ({ ...prev, [offer.id]: "" }))}
+                                className="text-xs underline mt-1 hover:no-underline"
+                              >
+                                Dismiss
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       ) : (
                         <Link
                           href="/?showModal=login"
@@ -377,6 +445,14 @@ export default function OfferList({ user }: OfferListProps) {
         title="Delete Offer"
         message={deleteModal.offer ? `Are you sure you want to delete "${deleteModal.offer.title}"? This action cannot be undone.` : ""}
         error={deleteError}
+      />
+
+      {/* Toast Notifications */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={hideToast}
       />
     </div>
   );

@@ -318,6 +318,72 @@ client.test("Deleted offer should not exist", function() {
 
 ###
 
+###
+
+# =============================================================================
+# BOOKING & PAYMENT ENDPOINTS 
+# =============================================================================
+
+### Create checkout session for booking (requires authentication)
+# @name createCheckoutSession
+POST {{SkillSwap.Api_HostAddress}}/checkout-session
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "offerId": {{testOfferId}},
+  "userId": "00000000-0000-0000-0000-000000000000"
+}
+
+> {%
+client.test("Create checkout session successful", function() {
+    client.assert(response.status === 200, "Expected status 200");
+    client.assert(response.body.hasOwnProperty("checkoutUrl"), "Response should contain checkoutUrl");
+    client.assert(response.body.hasOwnProperty("bookingId"), "Response should contain bookingId");
+    client.assert(response.body.checkoutUrl.includes("stripe.com") || response.body.checkoutUrl.includes("checkout"), "Checkout URL should be valid");
+    client.global.set("bookingId", response.body.bookingId);
+});
+%}
+
+###
+
+### Try to create checkout session without authentication (should fail)
+# @name createCheckoutSessionUnauthorized
+POST {{SkillSwap.Api_HostAddress}}/checkout-session
+Content-Type: application/json
+
+{
+  "offerId": {{testOfferId}},
+  "userId": "00000000-0000-0000-0000-000000000000"
+}
+
+> {%
+client.test("Create checkout session without auth should fail", function() {
+    client.assert(response.status === 401, "Expected status 401 (Unauthorized)");
+});
+%}
+
+###
+
+### Try to create checkout session with invalid offer ID (should fail)
+# @name createCheckoutSessionInvalidOffer
+POST {{SkillSwap.Api_HostAddress}}/checkout-session
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "offerId": 999999,
+  "userId": "00000000-0000-0000-0000-000000000000"
+}
+
+> {%
+client.test("Create checkout session with invalid offer should fail", function() {
+    client.assert(response.status === 500, "Expected status 500 (Server Error) for invalid offer");
+});
+%}
+
+###
+
 # =============================================================================
 # ERROR TESTING
 # =============================================================================

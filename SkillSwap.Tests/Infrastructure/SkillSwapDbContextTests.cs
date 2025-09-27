@@ -244,13 +244,13 @@ public class SkillSwapDbContextTests
         // Arrange
         var options = CreateInMemoryDbContextOptions();
         var bookingId = 1;
-        var userId = 1;
+        var userId = Guid.NewGuid();
         var booking = new Booking
         {
             Id = bookingId,
             UserId = userId,
             OfferId = 1,
-            Status = "Confirmed"
+            Status = BookingStatus.Completed
         };
 
         // Act & Assert
@@ -265,7 +265,7 @@ public class SkillSwapDbContextTests
             var retrievedBooking = await context.Bookings.FindAsync(bookingId);
             retrievedBooking.Should().NotBeNull();
             retrievedBooking!.UserId.Should().Be(userId);
-            retrievedBooking.Status.Should().Be("Confirmed");
+            retrievedBooking.Status.Should().Be(BookingStatus.Completed);
         }
     }
 }

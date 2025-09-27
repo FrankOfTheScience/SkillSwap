@@ -1,11 +1,13 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
+using System.Diagnostics.CodeAnalysis;
 
 #nullable disable
 
 namespace SkillSwap.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class UpdateOfferIdSequence : Migration
+    [ExcludeFromCodeCoverage]
+    partial class UpdateOfferIdSequence : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -32,3 +34,5 @@ namespace SkillSwap.Infrastructure.Migrations
         }
     }
 }
+
+
