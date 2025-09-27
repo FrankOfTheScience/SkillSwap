@@ -5,8 +5,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using SkillSwap.Api.Configuration;
 using SkillSwap.Api.Dtos;
 using SkillSwap.Api.Middleware;
+using SkillSwap.Api.Services;
+using SkillSwap.Application.Bookings.Commands;
 using SkillSwap.Application.Common.Interfaces;
 using SkillSwap.Application.Offers.Commands;
 using SkillSwap.Application.Offers.Dtos;
@@ -45,6 +48,10 @@ internal class Program
         builder.Services.AddScoped<IAuthService, AuthService>();
         builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(CreateOfferCommand).Assembly));
 
+        // Configure Stripe
+        builder.Services.Configure<SkillSwap.Api.Configuration.StripeSettings>(builder.Configuration.GetSection("Stripe"));
+        builder.Services.AddScoped<SkillSwap.Application.Common.Interfaces.IStripeService, SkillSwap.Api.Services.StripeService>();
+
 
         // Register validators and mappers
         builder.Services.AddAutoMapper(typeof(OfferProfile));
@@ -52,6 +59,7 @@ internal class Program
         builder.Services.AddValidatorsFromAssemblyContaining<UpdateOfferCommandValidator>();
         builder.Services.AddAutoMapper(typeof(UserProfile));
         builder.Services.AddValidatorsFromAssemblyContaining<RegisterUserCommandValidator>();
+        builder.Services.AddValidatorsFromAssemblyContaining<SkillSwap.Application.Bookings.Commands.CreateBookingCommandValidator>();
 
         var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>()
                            ?? Environment.GetEnvironmentVariable("ALLOWED_ORIGINS")?.Split(',')
@@ -291,6 +299,81 @@ internal class Program
         .Produces(204)
         .Produces(403)
         .Produces(404)
+        .RequireAuthorization();
+
+        // POST /checkout-session
+        app.MapPost("/checkout-session",
+            [Authorize(Roles = "User,Admin")] async (
+                CreateCheckoutSessionRequest request,
+                IMediator mediator,
+                SkillSwap.Application.Common.Interfaces.IStripeService stripeService,
+                IConfiguration configuration,
+                ClaimsPrincipal user) =>
+            {
+                try
+                {
+                    // Get user ID from token
+                    var userIdClaim = user.FindFirstValue(JwtRegisteredClaimNames.Sub) 
+                        ?? user.FindFirstValue("sub") 
+                        ?? user.FindFirstValue(ClaimTypes.NameIdentifier);
+
+                    if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+                    {
+                        return Results.BadRequest("Invalid user ID in token");
+                    }
+
+                    // Override request UserId with token UserId for security
+                    var createBookingCommand = new SkillSwap.Application.Bookings.Commands.CreateBookingCommand(
+                        request.OfferId,
+                        userId
+                    );
+
+                    // Create the booking
+                    var bookingId = await mediator.Send(createBookingCommand);
+
+                    // Get stripe configuration
+                    var stripeConfig = configuration.GetSection("Stripe");
+                    var successUrl = stripeConfig["CheckoutUrls:SuccessUrl"] ?? "http://localhost:3000/booking/success?session_id={CHECKOUT_SESSION_ID}";
+                    var cancelUrl = stripeConfig["CheckoutUrls:CancelUrl"] ?? "http://localhost:3000/booking/cancel";
+
+                    // Get booking details to get the amount
+                    using var scope = app.Services.CreateScope();
+                    var dbContext = scope.ServiceProvider.GetRequiredService<SkillSwap.Application.Common.Interfaces.IApplicationDbContext>();
+                    
+                    var booking = await dbContext.Bookings
+                        .Include(b => b.Offer)
+                        .FirstOrDefaultAsync(b => b.Id == bookingId);
+
+                    if (booking?.Offer == null)
+                    {
+                        return Results.Problem("Booking or offer not found after creation");
+                    }
+
+                    // Create Stripe checkout session
+                    var checkoutUrl = await stripeService.CreateCheckoutSessionAsync(
+                        bookingId,
+                        booking.Amount,
+                        booking.CommissionAmount,
+                        successUrl,
+                        cancelUrl
+                    );
+
+                    return Results.Ok(new CreateCheckoutSessionResponse
+                    {
+                        CheckoutUrl = checkoutUrl,
+                        BookingId = bookingId
+                    });
+                }
+                catch (Exception ex)
+                {
+                    return Results.Problem($"Error creating checkout session: {ex.Message}");
+                }
+            })
+        .WithName("CreateCheckoutSession")
+        .Produces<CreateCheckoutSessionResponse>(200)
+        .Produces(400)
+        .Produces(401)
+        .Produces(500)
         .RequireAuthorization();
 
         app.Run();
