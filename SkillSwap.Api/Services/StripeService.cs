@@ -53,11 +53,9 @@ public class StripeService : IStripeService
             {
                 { "booking_id", bookingId.ToString() },
                 { "commission_amount", commissionAmount.ToString("F2") }
-            },
-            PaymentIntentData = new SessionPaymentIntentDataOptions
-            {
-                ApplicationFeeAmount = (long)(commissionAmount * 100) // Convert to cents
             }
+            // Note: ApplicationFeeAmount is only for Stripe Connect accounts
+            // For direct payments, we handle commission internally
         };
 
         var session = await _sessionService.CreateAsync(options, null, cancellationToken);

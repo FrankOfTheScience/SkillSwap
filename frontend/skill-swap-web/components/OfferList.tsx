@@ -140,7 +140,7 @@ export default function OfferList({ user }: OfferListProps) {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search in titles and descriptions..."
-                className="flex-1 px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="flex-1 px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500"
               />
               <button
                 type="submit"
@@ -161,7 +161,7 @@ export default function OfferList({ user }: OfferListProps) {
               value={maxBudget || ""}
               onChange={(e) => handleBudgetChange(e.target.value)}
               placeholder="Any budget"
-              className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500"
             />
           </div>
 
@@ -176,7 +176,7 @@ export default function OfferList({ user }: OfferListProps) {
                   setShowOnlyMyOffers(value === "all" ? undefined : value === "mine");
                   setPage(1);
                 }}
-                className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
               >
                 <option value="all">All Offers</option>
                 <option value="mine">My Offers</option>
@@ -192,7 +192,7 @@ export default function OfferList({ user }: OfferListProps) {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="flex-1 px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="flex-1 px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
               >
                 <option value="id">Date Created</option>
                 <option value="title">Title</option>
