@@ -107,6 +107,12 @@ function HomePage() {
               </div>
             </div>
             <div className="flex gap-3">
+              <button
+                onClick={() => router.push('/my-bookings')}
+                className="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 shadow-md"
+              >
+                📋 My Bookings
+              </button>
               <button 
                 onClick={handleLogout}
                 className="bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white px-6 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 shadow-md"

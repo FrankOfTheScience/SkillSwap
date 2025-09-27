@@ -7,6 +7,7 @@ import { getCurrentUser } from "../../../../services/auth";
 import Link from "next/link";
 import DeleteConfirmModal from "../../../../components/DeleteConfirmModal";
 import ModalWrapper from "../../../../components/ModalWrapper";
+import BookingConfirmModal from "../../../../components/BookingConfirmModal";
 
 interface ViewProps { params: Promise<{ id: string }> }
 
@@ -17,6 +18,7 @@ export default function ViewOfferPage({ params }: ViewProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleteModal, setDeleteModal] = useState(false);
+  const [bookingModal, setBookingModal] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -36,6 +38,10 @@ export default function ViewOfferPage({ params }: ViewProps) {
 
   const handleDeleteClick = () => {
     setDeleteModal(true);
+  };
+
+  const handleBookingClick = () => {
+    setBookingModal(true);
   };
 
   const handleDeleteConfirm = async () => {
@@ -119,7 +125,10 @@ export default function ViewOfferPage({ params }: ViewProps) {
               </button>
             </>
           ) : user ? (
-            <button className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg flex items-center gap-2">
+            <button 
+              onClick={handleBookingClick}
+              className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg flex items-center gap-2"
+            >
               📅 Book This Offer
             </button>
           ) : (
@@ -140,6 +149,16 @@ export default function ViewOfferPage({ params }: ViewProps) {
         title="Delete Offer"
         message={`Are you sure you want to delete "${offer.title}"? This action cannot be undone.`}
       />
+
+      {/* Booking Confirmation Modal */}
+      {offer && user && (
+        <BookingConfirmModal
+          isOpen={bookingModal}
+          onClose={() => setBookingModal(false)}
+          offer={offer}
+          user={user}
+        />
+      )}
     </ModalWrapper>
   );
 }
