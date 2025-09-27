@@ -2,6 +2,135 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.3.0] - 2025-09-27
+
+### minor Release
+
+**Pull Request:** [#24](https://github.com/FrankOfTheScience/SkillSwap/pull/24)  
+**Author:** [@FrankOfTheScience](https://github.com/FrankOfTheScience)
+
+#### Changes
+
+## 🎯 Overview
+This PR implements a complete end-to-end Stripe checkout integration for the SkillSwap booking system, enabling users to seamlessly book offers with secure payment processing.
+
+## ✨ Features Added
+
+### 🔐 Frontend Booking Flow
+- **Complete booking workflow** with Stripe checkout integration
+- **Authentication-gated booking** - users must be logged in to book offers
+- **Enhanced booking buttons** displaying "💳 Book for €[price]" with real-time pricing
+- **Loading states** with spinners during checkout session creation
+- **Toast notification system** for user feedback and error handling
+
+### 🎨 User Experience Enhancements
+- **New Toast Component** with animations, auto-dismiss, and multiple types (success/error/warning/info)
+- **Responsive design** optimized for desktop and mobile devices
+- **Comprehensive error handling** with user-friendly messages and recovery options
+- **Loading indicators** to prevent double-clicks and provide visual feedback
+
+### 📱 Success & Cancel Pages
+- **Enhanced success page** with celebration UI, booking details, and next steps guidance
+- **Improved cancel page** with helpful explanations and retry options
+- **Session ID tracking** for payment record keeping
+- **Clear navigation options** back to offers or user dashboard
+
+### ⚙️ Backend Integration
+- **Updated checkout URLs** with proper booking ID parameter handling
+- **Port configuration fixes** for development environment compatibility
+- **Enhanced Program.cs** with improved success/cancel URL formatting
+
+## 🔧 Technical Implementation
+
+### Files Modified/Created
+- ✅ `components/Toast.tsx` - **NEW**: Complete toast notification system
+- ✅ `components/OfferList.tsx` - Enhanced with booking functionality and error handling
+- ✅ `app/booking/cancel/page.tsx` - Improved navigation and user guidance
+- ✅ `SkillSwap.Api/Program.cs` - Updated checkout session handling
+- ✅ `SkillSwap.Api/appsettings.json` - Fixed frontend port configuration
+
+### Key Features
+- **Secure API integration** with JWT token validation
+- **Error boundary implementation** with graceful degradation
+- **Network error detection** and user-friendly messaging
+- **Payment flow state management** with loading/success/error states
+
+## 🚦 User Flow
+
+### Successful Booking Flow
+1. User logs in → Sees "💳 Book for €[price]" buttons
+2. Clicks booking → Loading spinner + "Processing..." text
+3. API creates checkout session → Toast notification appears
+4. Redirects to Stripe → User completes payment securely
+5. Returns to success page → Celebration UI with booking details
+
+### Error Handling Flow
+- **Network issues** → Toast error with retry options
+- **Payment declined** → Cancel page with helpful guidance
+- **Session expired** → Clear messaging with navigation options
+- **API errors** → Inline error display with dismiss functionality
+
+## 🧪 Testing
+
+### Verified Scenarios
+✅ **Authentication flow** - Login required for booking  
+✅ **Loading states** - Spinners and disabled buttons during processing  
+✅ **Success redirect** - Proper return from Stripe with booking confirmation  
+✅ **Cancel handling** - User-friendly cancel page with retry options  
+✅ **Error recovery** - Toast notifications and error messaging  
+✅ **Mobile responsiveness** - Works seamlessly on all device sizes  
+
+### API Integration Tests
+✅ **Checkout session creation** with valid user tokens  
+✅ **Success URL formatting** with booking ID parameters  
+✅ **Cancel URL handling** with proper redirects  
+✅ **Error response handling** for failed API calls  
+
+## 🔒 Security & Quality
+
+- **Authentication required** for all booking operations
+- **JWT token validation** on API endpoints  
+- **Input sanitization** and error boundary protection
+- **No sensitive data** exposed in frontend code
+- **Comprehensive error handling** prevents application crashes
+
+## 📊 Impact
+
+### User Experience
+- **Seamless payment flow** reduces booking abandonment
+- **Clear feedback** improves user confidence during payment
+- **Mobile optimization** enables booking from any device
+- **Error recovery** reduces user frustration with failed payments
+
+### Technical Debt
+- **Production-ready code** with comprehensive error handling
+- **Maintainable architecture** with reusable Toast component
+- **TypeScript integration** ensures type safety
+- **Responsive design patterns** for future UI consistency
+
+## 🚀 Deployment Notes
+
+### Environment Configuration
+- Frontend runs on `localhost:3000` (development)
+- Backend API on `localhost:5095` with proper CORS configuration
+- Stripe checkout URLs configured for local development
+- Success/cancel pages properly handle URL parameters
+
+### Future Considerations
+- Toast notifications system can be extended for other features
+- Booking flow architecture supports additional payment methods
+- Error handling patterns established for consistent UX
+- Mobile-first design ready for production deployment
+
+---
+
+**Type**: ✨ **Minor** - New feature addition with backward compatibility  
+**Breaking Changes**: None  
+**Migration Required**: None  
+
+---
+
+
 ## [v0.2.1] - 2025-09-26
 
 ### patch Release
