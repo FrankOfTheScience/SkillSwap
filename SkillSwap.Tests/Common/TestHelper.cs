@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using SkillSwap.Application.Offers.Mappings;
 using SkillSwap.Infrastructure;
+using Polly;
 
 namespace SkillSwap.Tests.Common;
 public static class TestHelper
@@ -23,5 +24,19 @@ public static class TestHelper
             cfg.AddProfile<OfferProfile>(); 
         });
         return config.CreateMapper();
+    }
+
+    public static ResiliencePipeline CreateMockPipeline()
+    {
+        return new ResiliencePipelineBuilder()
+            .AddTimeout(TimeSpan.FromSeconds(30))
+            .Build();
+    }
+
+    public static ResiliencePipeline<T> CreateMockPipeline<T>()
+    {
+        return new ResiliencePipelineBuilder<T>()
+            .AddTimeout(TimeSpan.FromSeconds(30))
+            .Build();
     }
 }

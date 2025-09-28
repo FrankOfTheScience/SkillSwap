@@ -1,0 +1,159 @@
+name: PR Template Automation
+
+on:
+  pull_request:
+    types: [labeled]
+
+jobs:
+  apply-template:
+    runs-on: ubuntu-latest
+    if: contains(github.event.label.name, 'major') || contains(github.event.label.name, 'minor') || contains(github.event.label.name, 'patch')
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Apply PR template based on label
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            const labelName = context.payload.label.name;
+            console.log(`Label "${labelName}" was added to PR #${context.payload.pull_request.number}`);
+
+            const versionLabels = ['major', 'minor', 'patch'];
+            if (!versionLabels.includes(labelName)) {
+              console.log('Not a version label, skipping template application');
+              return;
+            }
+
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number
+            });
+
+            const hasCustomTitle = pullRequest.title && 
+                                   pullRequest.title.trim() !== '' && 
+                                   !pullRequest.title.includes('→') &&
+                                   !pullRequest.title.toLowerCase().includes('merge') &&
+                                   pullRequest.title !== pullRequest.head.ref;
+                                   
+            const hasCustomDescription = pullRequest.body && 
+                                        pullRequest.body.trim() !== '' && 
+                                        !pullRequest.body.includes('<!-- ') &&
+                                        pullRequest.body.length > 50;
+            
+            if (hasCustomTitle && hasCustomDescription) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: [
+                  '🤖 **Template Available**',
+                  '',
+                  `I noticed you added the \`${labelName}\` label to this PR, but it already has custom content.`,
+                  '',
+                  `Would you like me to apply the **${labelName}** release template? This will:`,
+                  '- Update the PR title with the appropriate prefix',
+                  `- Replace the current description with the ${labelName} template`,
+                  '',
+                  'If you want the template applied, please:',
+                  '1. Remove this PR\'s current description content',
+                  `2. Remove and re-add the \`${labelName}\` label`,
+                  '',
+                  `Or you can manually copy the template content from \`.github/PULL_REQUEST_TEMPLATE/${labelName}.md\``
+                ].join('\\n')
+              });
+              return;
+            }
+
+            const allLabels = pullRequest.labels.map(l => l.name);
+            const presentVersionLabels = versionLabels.filter(label => allLabels.includes(label));
+            
+            const priorityOrder = ['major', 'minor', 'patch'];
+            const templateToUse = priorityOrder.find(label => presentVersionLabels.includes(label)) || labelName;
+
+            const templatePath = path.join('.github', 'PULL_REQUEST_TEMPLATE', `${templateToUse}.md`);
+            let templateContent = '';
+            
+            try {
+              templateContent = fs.readFileSync(templatePath, 'utf8');
+            } catch (error) {
+              console.log(`Template file ${templatePath} not found`);
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: [
+                  '❌ **Template Error**',
+                  '',
+                  `I tried to apply the ${templateToUse} template, but couldn't find the template file at \`${templatePath}\`.`,
+                  '',
+                  'Please manually copy the appropriate template or check that the template files exist in the repository.'
+                ].join('\\n')
+              });
+              return;
+            }
+
+            const branchName = pullRequest.head.ref;
+            
+            const titlePrefixMap = {
+              'major': '💥 BREAKING',
+              'minor': '✨ feat',  
+              'patch': '🐛 fix'
+            };
+            
+            let newTitle = '';
+            if (hasCustomTitle) {
+              const existingTitle = pullRequest.title.replace(/^(💥 BREAKING|✨ feat|🐛 fix|feat|fix|BREAKING):\\s*/, '');
+              newTitle = `${titlePrefixMap[templateToUse]}: ${existingTitle}`;
+            } else {
+              const cleanBranchName = branchName.replace(/[-_]/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2');
+              newTitle = `${titlePrefixMap[templateToUse]}: ${cleanBranchName}`;
+            }
+
+            console.log(`Applying ${templateToUse} template to PR #${context.payload.pull_request.number}`);
+            
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              title: newTitle,
+              body: templateContent
+            });
+
+            let warningMessage = '';
+            if (presentVersionLabels.length > 1) {
+              warningMessage = `\\n⚠️ **Multiple version labels detected:** ${presentVersionLabels.join(', ')}. I used the **${templateToUse}** template (highest priority). Please remove any incorrect labels.\\n`;
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: [
+                '🤖 **Automated Template Applied**',
+                '',
+                `I've automatically applied the **${templateToUse}** release template to this PR since you added the \`${labelName}\` label.${warningMessage}`,
+                '',
+                '📝 **Next steps:**',
+                '- Fill out all the template sections with relevant information',
+                '- Complete the checklists in each section',
+                '- Add any missing details specific to your changes',
+                '- Ensure all tests pass before requesting review',
+                '',
+                '💡 **Tips:**',
+                '- All sections marked with checkboxes should be completed',
+                '- Replace placeholder text with your actual information',
+                '- Add screenshots or examples where relevant',
+                '- Link any related issues or PRs',
+                '',
+                'If you need to modify the template or this was applied incorrectly, you can edit the PR description directly.'
+              ].join('\\n')
+            });
+
+            console.log(`Successfully applied ${templateToUse} template and updated PR title`);

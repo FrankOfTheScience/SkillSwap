@@ -342,7 +342,7 @@ export default function OfferList({ user }: OfferListProps) {
                                 Processing...
                               </>
                             ) : (
-                              <>� Book for €{offer.price}</>
+                              <>📅 Book for €{offer.price}</>
                             )}
                           </button>
                           {bookingError[offer.id] && (
