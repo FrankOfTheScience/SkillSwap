@@ -1,144 +1,212 @@
-# 🔒 Secure Development Setup Guide
+# 🔒 Development Environment Setup
 
-## ⚠️ IMPORTANT SECURITY NOTICE
+Welcome to SkillSwap! This guide will help you set up your local development environment securely.
 
-**ALL SENSITIVE CONFIGURATION HAS BEEN REMOVED FROM THE REPOSITORY**
+## � Quick Start
 
-This repository now uses secure configuration management. Follow this guide to set up your development environment.
+### Prerequisites
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- [Node.js 20+](https://nodejs.org/) and npm
+- [PostgreSQL 15+](https://www.postgresql.org/download/)
+- [Git](https://git-scm.com/downloads)
 
-## 🔧 Required Configuration
+### 1. Clone and Setup
+```bash
+git clone https://github.com/FrankOfTheScience/SkillSwap.git
+cd SkillSwap
 
-### Database Configuration
-- PostgreSQL connection string with credentials
-- Recommended: `Host=localhost;Port=5432;Database=skillswap;Username=postgres;Password=YOUR_PASSWORD`
+# Install git hooks (recommended)
+git config core.hooksPath .githooks
+```
 
-### JWT Authentication
-- Secret key for token signing (minimum 256 bits)
-- Issuer: `SkillSwap`
-- Audience: `SkillSwapUsers`
+### 2. Database Setup
+Create a PostgreSQL database:
+```sql
+CREATE DATABASE skillswap;
+CREATE USER skillswap_user WITH PASSWORD 'your_password';
+GRANT ALL PRIVILEGES ON DATABASE skillswap TO skillswap_user;
+```
 
-### Stripe Integration
-- Test publishable key (`pk_test_...`)
-- Test secret key (`sk_test_...`)
-- Webhook secret (`whsec_...`) - for future webhook implementation
+### 3. Configure Application Secrets
 
-## 🛡️ Setup Methods
+We use secure configuration management. **No secrets are stored in the repository.**
 
-### Method 1: .NET User Secrets (Recommended for Development)
-
+#### Option A: .NET User Secrets (Recommended)
 ```bash
 cd SkillSwap.Api
 
 # Database connection
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=skillswap;Username=postgres;Password=YOUR_DB_PASSWORD"
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=skillswap;Username=skillswap_user;Password=your_password"
 
-# JWT configuration
-dotnet user-secrets set "Jwt:Key" "YOUR_VERY_LONG_AND_SECURE_JWT_SECRET_KEY_HERE_MINIMUM_256_BITS"
+# JWT configuration (generate a secure key!)
+dotnet user-secrets set "Jwt:Key" "your-256-bit-secret-key-here-make-it-long-and-random"
 
-# Stripe configuration
-dotnet user-secrets set "Stripe:PublishableKey" "pk_test_YOUR_STRIPE_PUBLISHABLE_KEY"
-dotnet user-secrets set "Stripe:SecretKey" "sk_test_YOUR_STRIPE_SECRET_KEY"
-dotnet user-secrets set "Stripe:WebhookSecret" "whsec_YOUR_WEBHOOK_SECRET_WHEN_READY"
+# Stripe test keys (get from https://dashboard.stripe.com - test mode)
+dotnet user-secrets set "Stripe:PublishableKey" "pk_test_your_publishable_key"
+dotnet user-secrets set "Stripe:SecretKey" "sk_test_your_secret_key"
+dotnet user-secrets set "Stripe:WebhookSecret" "whsec_your_webhook_secret"
 ```
 
-### Method 2: Environment Variables
-
-Set these environment variables in your system or IDE:
-
+#### Option B: Environment Variables
+Set these in your IDE or system environment:
 ```env
-ConnectionStrings__DefaultConnection="Host=localhost;Port=5432;Database=skillswap;Username=postgres;Password=YOUR_DB_PASSWORD"
-Jwt__Key="YOUR_VERY_LONG_AND_SECURE_JWT_SECRET_KEY_HERE_MINIMUM_256_BITS"
-Stripe__PublishableKey="pk_test_YOUR_STRIPE_PUBLISHABLE_KEY"
-Stripe__SecretKey="sk_test_YOUR_STRIPE_SECRET_KEY"
-Stripe__WebhookSecret="whsec_YOUR_WEBHOOK_SECRET"
+ConnectionStrings__DefaultConnection="Host=localhost;Port=5432;Database=skillswap;Username=skillswap_user;Password=your_password"
+Jwt__Key="your-256-bit-secret-key-here-make-it-long-and-random"
+Stripe__PublishableKey="pk_test_your_publishable_key"
+Stripe__SecretKey="sk_test_your_secret_key"
+Stripe__WebhookSecret="whsec_your_webhook_secret"
 ```
 
-### Method 3: Local Configuration File (Not Recommended)
+### 4. Install Dependencies
+```bash
+# Backend dependencies
+dotnet restore
 
-If you must use a local config file, create `appsettings.Development.local.json` (this file is git-ignored):
-
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=skillswap;Username=postgres;Password=YOUR_PASSWORD"
-  },
-  "Jwt": {
-    "Key": "YOUR_VERY_LONG_AND_SECURE_JWT_SECRET_KEY_HERE"
-  },
-  "Stripe": {
-    "PublishableKey": "pk_test_YOUR_KEY",
-    "SecretKey": "sk_test_YOUR_KEY",
-    "WebhookSecret": "whsec_YOUR_SECRET"
-  }
-}
+# Frontend dependencies
+cd frontend/skill-swap-web
+npm install
 ```
 
-## 🔑 Getting Your Stripe Keys
+### 5. Run the Application
+```bash
+# Terminal 1: Start the API (from repository root)
+cd SkillSwap.Api
+dotnet run
 
-1. Visit [Stripe Dashboard](https://dashboard.stripe.com)
-2. Ensure you're in **Test Mode** (toggle in top-left)
-3. Navigate to **Developers > API Keys**
-4. Copy your test keys (they start with `pk_test_` and `sk_test_`)
+# Terminal 2: Start the frontend (from repository root)
+cd frontend/skill-swap-web
+npm run dev
+```
 
-## ✅ Verification Steps
+The application will be available at:
+- **Frontend**: http://localhost:3000
+- **API**: http://localhost:5095
+- **API Documentation**: http://localhost:5095/swagger
 
-1. **Start the API server:**
-   ```bash
-   cd SkillSwap.Api
-   dotnet run
-   ```
-   
-2. **Check the console output for:**
-   - No configuration errors
-   - Database connection successful
-   - Server listening on `http://localhost:5095`
+## 🔑 Getting API Keys
 
-3. **Start the frontend:**
-   ```bash
-   cd frontend/skill-swap-web
-   npm run dev
-   ```
+### Stripe Test Keys
+1. Create a free account at [Stripe](https://stripe.com)
+2. Go to [Dashboard > Developers > API Keys](https://dashboard.stripe.com/test/apikeys)
+3. Ensure you're in **Test Mode** (top-left toggle)
+4. Copy your **Publishable key** (`pk_test_...`) and **Secret key** (`sk_test_...`)
 
-4. **Test the integration:**
-   - Open `http://localhost:3002`
-   - Register a new user
-   - Try creating a booking
-   - Check Stripe Dashboard > Logs for API calls
+### JWT Secret Key
+Generate a secure random key (256+ bits):
+```bash
+# Using OpenSSL
+openssl rand -base64 64
 
-## 🛡️ Security Best Practices Implemented
+# Using PowerShell
+[System.Web.Security.Membership]::GeneratePassword(64, 0)
 
-- ✅ **No secrets in repository** - All sensitive data removed from git history
-- ✅ **Git ignore rules** - Prevents accidental commits of sensitive files
-- ✅ **User Secrets support** - Secure development configuration
-- ✅ **Environment variable support** - Production-ready configuration
-- ✅ **Clear documentation** - Easy setup for new developers
-- ✅ **Placeholder values** - Configuration files show structure without exposing secrets
+# Using Node.js
+node -e "console.log(require('crypto').randomBytes(64).toString('base64'))"
+```
 
-## 🚨 What Was Removed
+## 🧪 Testing Your Setup
 
-For security, the following sensitive information has been permanently removed from the repository:
+### Backend Tests
+```bash
+dotnet test
+```
 
-- Database passwords
-- JWT secret keys  
-- Stripe API keys (test and live)
-- Any other credentials or secrets
+### Frontend Tests
+```bash
+cd frontend/skill-swap-web
+npm test
+```
 
-## 📝 Notes for New Developers
+### Full Application Test
+1. **Register a new user** at http://localhost:3000
+2. **Create an offer** in the dashboard
+3. **Book an offer** (this will use Stripe test mode)
+4. Check your Stripe Dashboard > Logs to see the API calls
 
-1. **Never commit secrets** to the repository
-2. **Use User Secrets** for local development
-3. **Use Azure Key Vault** or similar for production
-4. **Rotate credentials** regularly
-5. **Test with Stripe test mode** only during development
+## 🛡️ Security Best Practices
 
-## 🔄 Next Steps
+### ✅ Do:
+- Use **User Secrets** for local development
+- Keep your **Stripe keys in test mode** during development
+- **Rotate credentials** regularly
+- **Never commit secrets** to version control
+- Use **strong, unique passwords** for your database
 
-Once you have the basic setup working:
-1. Implement Stripe webhook processing
-2. Add payment confirmation flow  
-3. Implement booking status updates
-4. Set up production deployment with secure configuration
+### ❌ Don't:
+- Put secrets in code or config files
+- Use production Stripe keys in development
+- Commit `.env` files or configuration with secrets
+- Share your JWT secret key
+- Use simple or common passwords
 
----
+## � Project Structure
 
-**⚠️ Remember: This setup ensures that no sensitive data is ever committed to version control, keeping your application secure.**
+```
+SkillSwap/
+├── SkillSwap.Api/              # ASP.NET Core Web API
+├── SkillSwap.Application/      # Application Layer (CQRS)
+├── SkillSwap.Domain/           # Domain Models
+├── SkillSwap.Infrastructure/   # Database & External Services
+├── SkillSwap.Tests/           # Unit & Integration Tests
+├── frontend/skill-swap-web/   # Next.js Frontend
+├── .github/                   # GitHub workflows & templates
+└── .githooks/                 # Git hooks for quality checks
+```
+
+## � Development Workflow
+
+### Making Changes
+1. **Create a feature branch**: `git checkout -b feature/your-feature`
+2. **Make your changes** with proper commit messages
+3. **Run tests**: `dotnet test && npm test`
+4. **Push your branch**: `git push origin feature/your-feature`
+5. **Create a PR** to `development` branch
+6. **Add appropriate label**: `patch`, `minor`, or `major`
+7. **PR template will be applied automatically!**
+
+### Git Hooks
+Our pre-push hooks automatically check for:
+- ✅ Conventional commit messages
+- ✅ Test passage
+- ✅ Code linting
+- ✅ Secret detection
+- ✅ Build success
+
+## 🆘 Troubleshooting
+
+### "Connection refused" errors
+- Ensure PostgreSQL is running
+- Check your connection string
+- Verify database exists and user has permissions
+
+### "Unauthorized" errors
+- Check your JWT secret key is set
+- Ensure it's at least 256 bits long
+- Verify the key matches between sessions
+
+### Stripe errors
+- Ensure you're using **test mode** keys
+- Check keys start with `pk_test_` and `sk_test_`
+- Verify your Stripe account is in test mode
+
+### Frontend won't connect to API
+- Ensure API is running on port 5095
+- Check CORS configuration in `Program.cs`
+- Verify environment variables in Next.js
+
+## 🤝 Getting Help
+
+- 📖 **Documentation**: Check the [PR Template Guide](.github/PULL_REQUEST_TEMPLATE/README.md)
+- 🐛 **Bug Reports**: Create an issue with the `bug` label
+- 💡 **Feature Requests**: Create an issue with the `enhancement` label
+- ❓ **Questions**: Start a discussion or comment on PRs
+
+## 🎉 You're Ready!
+
+Once you have everything running:
+1. The API should start without errors
+2. The frontend should load at http://localhost:3000
+3. You should be able to register and create offers
+4. Stripe test payments should work
+
+Welcome to the SkillSwap development community! 🚀
