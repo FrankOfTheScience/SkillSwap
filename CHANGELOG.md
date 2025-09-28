@@ -2,6 +2,133 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.3.1] - 2025-09-28
+
+### patch Release
+
+**Pull Request:** [#25](https://github.com/FrankOfTheScience/SkillSwap/pull/25)  
+**Author:** [@FrankOfTheScience](https://github.com/FrankOfTheScience)
+
+#### Changes
+
+# 🐛 Patch Release - Bug Fix / Maintenance
+
+## Summary
+**What bug does this fix or what maintenance does this perform?**
+<!-- Briefly describe the issue being resolved -->
+
+
+**Impact:**
+- [x] Bug fix that doesn't affect existing functionality
+- [x] Documentation updates
+- [x] Code refactoring without behavior changes
+- [ ] Dependency updates
+- [x] Performance optimizations
+- [ ] Security patches
+
+## Root Cause Analysis
+**What caused this issue?**
+<!-- Explain the underlying cause of the bug -->
+
+
+**How was it discovered?**
+- [ ] User reported bug
+- [ ] Internal testing
+- [x] Code review
+- [ ] Monitoring/logs
+- [ ] Security audit
+
+## Solution Details
+**What was changed?**
+<!-- Describe the technical approach to fix the issue -->
+
+
+**Why this approach?**
+<!-- Explain why this solution was chosen over alternatives -->
+
+
+## Testing
+### Bug Reproduction
+- [ ] Bug successfully reproduced before fix
+- [ ] Steps to reproduce documented
+- [ ] Test cases added to prevent regression
+
+### Verification
+- [x] Unit tests updated/added
+- [x] Manual testing completed
+- [ ] Edge cases considered
+- [ ] No new test failures
+
+**Test Coverage:**
+<!-- Describe specific tests added or modified -->
+
+
+## Risk Assessment
+**Risk Level:** 
+- [ ] Low - Isolated change with minimal impact
+- [x] Medium - Affects multiple components
+- [ ] High - Critical system changes
+
+**Potential Side Effects:**
+- [ ] None identified
+- [ ] Minor UI changes
+- [ ] Performance implications (document below)
+- [ ] Compatibility concerns (document below)
+
+**Mitigation Strategies:**
+<!-- How are risks being addressed? -->
+
+
+## Backward Compatibility
+- [x] ✅ Fully backward compatible
+- [ ] ⚠️ Minor compatibility notes (explain below)
+- [ ] ❌ Breaking changes (should be minor/major instead)
+
+**Compatibility Notes:**
+<!-- Any compatibility considerations -->
+
+
+## Deployment
+### Pre-deployment
+- [ ] Database migrations needed
+- [ ] Configuration changes required
+- [ ] Cache clearing needed
+- [ ] Service restarts required
+
+### Rollback Plan
+- [ ] Simple code revert possible
+- [ ] Database rollback procedure documented
+- [ ] Rollback tested
+
+**Deployment Instructions:**
+<!-- Specific deployment steps if needed -->
+
+
+## Validation Checklist
+- [x] Code follows project standards
+- [x] Self-review completed
+- [x] Tests pass locally
+- [x] No console errors/warnings
+- [x] Documentation updated if needed
+- [ ] Security implications reviewed
+- [ ] Performance impact assessed
+
+## Related Issues
+<!-- Use "Fixes #123" to auto-close issues -->
+Fixes #
+Closes #
+Related to #
+
+## Additional Notes
+<!-- Any other relevant information -->
+
+
+---
+**🏷️ Remember to add the `patch` label to this PR**
+
+---
+
+
 ## [v0.3.0] - 2025-09-27
 
 ### minor Release
