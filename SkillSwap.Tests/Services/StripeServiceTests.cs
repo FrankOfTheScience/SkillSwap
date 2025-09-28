@@ -30,23 +30,13 @@ public class StripeServiceTests
     }
 
     [Fact]
-    public async Task CreateCheckoutSessionAsync_WithValidParameters_ReturnsSessionUrl()
+    public void CreateCheckoutSessionAsync_WithValidParameters_InitializesService()
     {
         // Arrange
         var service = new StripeService(_mockOptions);
-        var bookingId = 123;
-        var amount = 100.00m;
-        var commissionAmount = 10.00m;
-        var successUrl = "https://example.com/success";
-        var cancelUrl = "https://example.com/cancel";
-
-        // Note: This test will make a real API call to Stripe's test environment
-        // In a production test suite, you would mock the SessionService
-        // For now, we'll test the service construction and parameter handling
 
         // Act & Assert
-        // We can't easily test the actual Stripe API call without mocking the SessionService
-        // Instead, we'll test that the service is properly initialized
+        // Test that the service is properly initialized with valid parameters
         service.Should().NotBeNull();
         
         // Test that the stripe configuration is set correctly
@@ -145,12 +135,15 @@ public class StripeServiceTests
         var service = new StripeService(_mockOptions);
 
         // Act & Assert
-        // Test that service can be created with different amount values
+        // Test that service can handle different decimal amounts and commissions
         service.Should().NotBeNull();
         
-        // Verify the amounts would be converted correctly (amount * 100 for Stripe cents)
-        var expectedCents = (long)(amount * 100);
-        expectedCents.Should().Be((long)(amount * 100));
+        // Verify the amounts are valid decimals (not NaN or infinity)
+        amount.Should().BeGreaterThan(0);
+        commission.Should().BeGreaterThanOrEqualTo(0);
+        
+        // Verify commission is reasonable percentage of amount
+        (commission / amount).Should().BeLessThanOrEqualTo(1.0m);
     }
 
     private string GenerateStripeSignature(string payload, string secret, long timestamp)

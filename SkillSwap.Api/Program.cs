@@ -49,10 +49,42 @@ internal class Program
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<SkillSwapDbContext>());
         builder.Services.AddScoped<IAuthService, AuthService>();
+        
+        // Add HTTP client factory with resilience
+        builder.Services.AddHttpClient();
+        builder.Services.AddHttpClient("Default");
+        builder.Services.AddHttpClient("Stripe", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(45);
+            client.DefaultRequestHeaders.Add("User-Agent", "SkillSwap/1.0");
+        });
+        builder.Services.AddHttpClient("ExternalApi", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(30);
+        });
+        
         builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(CreateOfferCommand).Assembly));
 
         // Configure Stripe
         builder.Services.Configure<SkillSwap.Api.Configuration.StripeSettings>(builder.Configuration.GetSection("Stripe"));
+        
+        // Configure Resilience
+        builder.Services.Configure<ResilienceSettings>(builder.Configuration.GetSection(ResilienceSettings.SectionName));
+        
+        // Register ResilienceSettings as a singleton for direct injection
+        builder.Services.AddSingleton<ResilienceSettings>(provider =>
+        {
+            var resilienceSettings = new ResilienceSettings();
+            builder.Configuration.GetSection(ResilienceSettings.SectionName).Bind(resilienceSettings);
+            return resilienceSettings;
+        });
+        
+        // Register resilience services
+        builder.Services.AddSingleton<IResiliencePolicyService, ResiliencePolicyService>();
+        builder.Services.AddScoped<IResilientDatabaseService, ResilientDatabaseService>();
+        builder.Services.AddScoped<IResilientHttpClientService, ResilientHttpClientService>();
+        
+        // Register Stripe services with resilience
         builder.Services.AddScoped<SkillSwap.Application.Common.Interfaces.IStripeService, SkillSwap.Api.Services.StripeService>();
         builder.Services.AddScoped<SkillSwap.Application.Common.Interfaces.IStripeEventParser, SkillSwap.Api.Services.StripeEventParser>();
 
@@ -120,6 +152,7 @@ internal class Program
 
         // Register Middleware
         app.UseMiddleware<ErrorHandlingMiddleware>();
+        app.UseResilience(); // Add resilience middleware
 
         if (app.Environment.IsDevelopment())
         {
@@ -150,240 +183,7 @@ internal class Program
             await DbSeeder.SeedAsync(db);
         }
 
-        // POST /auth/register
-        app.MapPost("auth/register", async (RegisterUserCommand cmd, IMediator mediator) =>
-            {
-                var token = await mediator.Send(cmd);
-                return Results.Ok(new { Token = token });
-            });
-
-        // POST /auth/login
-        app.MapPost("auth/login", async (LoginUserCommand cmd, IMediator mediator) =>
-            {
-                var token = await mediator.Send(cmd);
-                return Results.Ok(new { Token = token });
-            });
-
-        // GET /user/profile
-        app.MapGet("/user/profile", 
-            [Microsoft.AspNetCore.Authorization.Authorize(Roles = "User,Admin")] (ClaimsPrincipal user) =>
-            {
-                return Results.Ok(new
-                {
-                    Id = user.FindFirstValue(JwtRegisteredClaimNames.Sub),
-                    Email = user.FindFirstValue(JwtRegisteredClaimNames.Email),
-                    DisplayName = user.FindFirstValue("displayName"),
-                    Roles = user.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList()
-                });
-            });
-
-        // GET /offers/{id}
-        app.MapGet("/offers/{id:int}", 
-            async (int id, IMediator mediator) =>
-            {
-                var offer = await mediator.Send(new GetOfferByIdQuery(id));
-                return offer is null ? Results.NotFound() : Results.Ok(offer);
-            })
-        .WithName("GetOfferById")
-        .Produces<OfferDto>(200)
-        .Produces(404);
-
-        // GET /offers
-        app.MapGet("/offers", async (
-            IMediator mediator, 
-            ClaimsPrincipal user,
-            [FromQuery] int? page = 1, 
-            [FromQuery] int pageSize = 10,
-            [FromQuery] string? search = null,
-            [FromQuery] decimal? maxBudget = null,
-            [FromQuery] bool? showOnlyMyOffers = null,
-            [FromQuery] string? sortBy = "id",
-            [FromQuery] bool sortDescending = false
-        ) =>
-        {
-            var userId = user.Identity?.IsAuthenticated == true 
-                ? user.FindFirstValue(JwtRegisteredClaimNames.Sub) 
-                  ?? user.FindFirstValue("sub") 
-                  ?? user.FindFirstValue(ClaimTypes.NameIdentifier)
-                : null;
-
-            var query = new GetOffersQuery(
-                page ?? 1, 
-                Math.Min(pageSize, 50), // Max 50 items per page
-                search,
-                maxBudget,
-                showOnlyMyOffers,
-                sortBy ?? "id",
-                sortDescending,
-                userId
-            );
-
-            var result = await mediator.Send(query);
-            return Results.Ok(result);
-        });
-
-        // POST /offers
-        app.MapPost("/offers",
-            [Authorize(Roles = "User,Admin")] async (CreateOfferDto dto, IMediator mediator, IValidator<CreateOfferCommand> validator, ClaimsPrincipal user) =>
-            {
-                // Debug: Log all claims
-                foreach (var claim in user.Claims)
-                {
-                    Console.WriteLine($"Claim: {claim.Type} = {claim.Value}");
-                }
-
-                var userId = user.FindFirstValue(JwtRegisteredClaimNames.Sub) 
-                    ?? user.FindFirstValue("sub") 
-                    ?? user.FindFirstValue(ClaimTypes.NameIdentifier);
-
-                if (string.IsNullOrEmpty(userId))
-                {
-                    Console.WriteLine("ERROR: No user ID found in claims!");
-                    return Results.BadRequest("User ID not found in token");
-                }
-
-                var cmd = new CreateOfferCommand(dto.Title, dto.Description, dto.Price, Guid.Parse(userId));
-
-                var validationResult = await validator.ValidateAsync(cmd);
-                if (!validationResult.IsValid)
-                    return Results.BadRequest(validationResult.Errors);
-
-                var id = await mediator.Send(cmd);
-                return Results.Created($"/offers/{id}", new { Id = id });
-            })
-        .WithName("CreateOffer")
-        .Produces(201)
-        .Produces(400)
-        .RequireAuthorization();
-
-        // PUT /offers/{id}
-        app.MapPut("/offers/{id:int}",
-            [Authorize(Roles = "User,Admin")] async (int id, UpdateOfferDto dto, IMediator mediator, IValidator<UpdateOfferCommand> validator, ClaimsPrincipal user) =>
-            {
-                var userId = user.FindFirstValue(JwtRegisteredClaimNames.Sub) 
-                    ?? user.FindFirstValue("sub") 
-                    ?? user.FindFirstValue(ClaimTypes.NameIdentifier);
-
-                if (string.IsNullOrEmpty(userId))
-                {
-                    return Results.BadRequest("User ID not found in token");
-                }
-
-                // NB: CreatedBy arriva dal token, non dal DTO
-                var cmd = new UpdateOfferCommand(id, dto.Title, dto.Description, dto.Price, Guid.Parse(userId));
-
-                var validationResult = await validator.ValidateAsync(cmd);
-                if (!validationResult.IsValid)
-                    return Results.BadRequest(validationResult.Errors);
-
-                var updated = await mediator.Send(cmd);
-                return updated is null ? Results.NotFound() : Results.Ok(updated);
-            })
-        .WithName("UpdateOffer")
-        .Produces<OfferDto>(200)
-        .Produces(400)
-        .Produces(404)
-        .RequireAuthorization();
-
-        // DELETE /offers/{id}
-        app.MapDelete("/offers/{id:int}",
-            [Authorize(Roles = "User,Admin")] async (int id, IMediator mediator, ClaimsPrincipal user) =>
-            {
-                try
-                {
-                    var deleted = await mediator.Send(new DeleteOfferCommand(id));
-                    return deleted ? Results.NoContent() : Results.NotFound();
-                }
-                catch (UnauthorizedAccessException)
-                {
-                    return Results.Forbid();
-                }
-            })
-        .WithName("DeleteOffer")
-        .Produces(204)
-        .Produces(403)
-        .Produces(404)
-        .RequireAuthorization();
-
-        // POST /checkout-session
-        app.MapPost("/checkout-session",
-            [Authorize(Roles = "User,Admin")] async (
-                CreateCheckoutSessionRequest request,
-                IMediator mediator,
-                SkillSwap.Application.Common.Interfaces.IStripeService stripeService,
-                IConfiguration configuration,
-                ClaimsPrincipal user) =>
-            {
-                try
-                {
-                    // Get user ID from token
-                    var userIdClaim = user.FindFirstValue(JwtRegisteredClaimNames.Sub) 
-                        ?? user.FindFirstValue("sub") 
-                        ?? user.FindFirstValue(ClaimTypes.NameIdentifier);
-
-                    if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
-                    {
-                        return Results.BadRequest("Invalid user ID in token");
-                    }
-
-                    // Override request UserId with token UserId for security
-                    var createBookingCommand = new SkillSwap.Application.Bookings.Commands.CreateBookingCommand(
-                        request.OfferId,
-                        userId
-                    );
-
-                    // Create the booking
-                    var bookingId = await mediator.Send(createBookingCommand);
-
-                    // Get stripe configuration
-                    var stripeConfig = configuration.GetSection("Stripe");
-                    var successUrl = stripeConfig["CheckoutUrls:SuccessUrl"] ?? "http://localhost:3000/booking/success?session_id={CHECKOUT_SESSION_ID}";
-                    var cancelUrl = stripeConfig["CheckoutUrls:CancelUrl"] ?? "http://localhost:3000/booking/cancel";
-                    
-                    // Add booking ID to the success URL
-                    successUrl = successUrl + "&booking_id=" + bookingId;
-
-                    // Get booking details to get the amount
-                    using var scope = app.Services.CreateScope();
-                    var dbContext = scope.ServiceProvider.GetRequiredService<SkillSwap.Application.Common.Interfaces.IApplicationDbContext>();
-                    
-                    var booking = await dbContext.Bookings
-                        .Include(b => b.Offer)
-                        .FirstOrDefaultAsync(b => b.Id == bookingId);
-
-                    if (booking?.Offer == null)
-                    {
-                        return Results.Problem("Booking or offer not found after creation");
-                    }
-
-                    // Create Stripe checkout session
-                    var checkoutUrl = await stripeService.CreateCheckoutSessionAsync(
-                        bookingId,
-                        booking.Amount,
-                        booking.CommissionAmount,
-                        successUrl,
-                        cancelUrl
-                    );
-
-                    return Results.Ok(new CreateCheckoutSessionResponse
-                    {
-                        CheckoutUrl = checkoutUrl,
-                        BookingId = bookingId
-                    });
-                }
-                catch (Exception ex)
-                {
-                    return Results.Problem($"Error creating checkout session: {ex.Message}");
-                }
-            })
-        .WithName("CreateCheckoutSession")
-        .Produces<CreateCheckoutSessionResponse>(200)
-        .Produces(400)
-        .Produces(401)
-        .Produces(500)
-        .RequireAuthorization();
-
-        // Map controllers for webhooks and booking endpoints
+        // Map controllers for all API endpoints
         app.MapControllers();
 
         app.Run();

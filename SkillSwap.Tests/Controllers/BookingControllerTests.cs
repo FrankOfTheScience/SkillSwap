@@ -101,23 +101,25 @@ public class BookingControllerTests : IDisposable
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
         var badRequestResult = result as BadRequestObjectResult;
-        var response = badRequestResult?.Value;
+        badRequestResult.Should().NotBeNull();
+        var response = badRequestResult!.Value;
         
-        response.GetType().GetProperty("error")?.GetValue(response).Should().Be("Missing session_id parameter");
+        response!.GetType().GetProperty("error")?.GetValue(response).Should().Be("Missing session_id parameter");
     }
 
     [Fact]
     public async Task BookingSuccess_WithNullSessionId_ReturnsBadRequest()
     {
         // Act
-        var result = await _controller.BookingSuccess(null);
+        var result = await _controller.BookingSuccess(null!);
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
         var badRequestResult = result as BadRequestObjectResult;
-        var response = badRequestResult?.Value;
+        badRequestResult.Should().NotBeNull();
+        var response = badRequestResult!.Value;
         
-        response.GetType().GetProperty("error")?.GetValue(response).Should().Be("Missing session_id parameter");
+        response!.GetType().GetProperty("error")?.GetValue(response).Should().Be("Missing session_id parameter");
     }
 
     [Fact]
@@ -132,9 +134,10 @@ public class BookingControllerTests : IDisposable
         // Assert
         result.Should().BeOfType<NotFoundObjectResult>();
         var notFoundResult = result as NotFoundObjectResult;
-        var response = notFoundResult?.Value;
+        notFoundResult.Should().NotBeNull();
+        var response = notFoundResult!.Value;
         
-        response.GetType().GetProperty("error")?.GetValue(response).Should().Be("Booking not found");
+        response!.GetType().GetProperty("error")?.GetValue(response).Should().Be("Booking not found");
     }
 
     [Fact]
@@ -196,9 +199,10 @@ public class BookingControllerTests : IDisposable
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
         var badRequestResult = result as BadRequestObjectResult;
-        var response = badRequestResult?.Value;
+        badRequestResult.Should().NotBeNull();
+        var response = badRequestResult!.Value;
         
-        response.GetType().GetProperty("error")?.GetValue(response).Should().Be("Missing session_id parameter");
+        response!.GetType().GetProperty("error")?.GetValue(response).Should().Be("Missing session_id parameter");
     }
 
     [Fact]
@@ -213,9 +217,10 @@ public class BookingControllerTests : IDisposable
         // Assert
         result.Should().BeOfType<NotFoundObjectResult>();
         var notFoundResult = result as NotFoundObjectResult;
-        var response = notFoundResult?.Value;
+        notFoundResult.Should().NotBeNull();
+        var response = notFoundResult!.Value;
         
-        response.GetType().GetProperty("error")?.GetValue(response).Should().Be("Booking not found");
+        response!.GetType().GetProperty("error")?.GetValue(response).Should().Be("Booking not found");
     }
 
     [Fact]
@@ -274,8 +279,9 @@ public class BookingControllerTests : IDisposable
         // Assert
         result.Should().BeOfType<NotFoundObjectResult>();
         var notFoundResult = result as NotFoundObjectResult;
-        var response = notFoundResult?.Value;
+        notFoundResult.Should().NotBeNull();
+        var response = notFoundResult!.Value;
         
-        response.GetType().GetProperty("error")?.GetValue(response).Should().Be("Booking not found");
+        response!.GetType().GetProperty("error")?.GetValue(response).Should().Be("Booking not found");
     }
 }

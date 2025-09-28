@@ -2,16 +2,21 @@ name: PR Label Check
 
 on:
   pull_request:
-    types: [opened, edited, reopened, synchronize]
+    types: [opened, edited, reopened, synchronize, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: write
 
 jobs:
   require-version-label:
     runs-on: ubuntu-latest
     steps:
-      - name: Check PR labels
+      - name: Check PR labels and provide guidance
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ github.token }}
           script: |
             const pr = await github.rest.pulls.get({
               owner: context.repo.owner,
@@ -20,11 +25,133 @@ jobs:
             });
 
             const labels = pr.data.labels.map(l => l.name);
-            const allowed = ["major","minor","patch"];
-            const hasAllowed = labels.some(l => allowed.includes(l));
+            const versionLabels = ["major", "minor", "patch"];
+            const hasVersionLabel = labels.some(l => versionLabels.includes(l));
+            const multipleVersionLabels = labels.filter(l => versionLabels.includes(l));
+            
+            console.log(`PR #${pr.data.number}: Found labels:`, labels);
+            console.log('Version labels found:', multipleVersionLabels);
 
-            if (!hasAllowed) {
+            // Check if this PR targets staging or main (where labels are required)
+            const targetBranch = pr.data.base.ref;
+            const requiresVersionLabel = ['staging', 'main', 'master'].includes(targetBranch);
+            
+            if (!requiresVersionLabel) {
+              console.log(`PR targets '${targetBranch}' - version labels not required`);
+              return;
+            }
+
+            // Multiple version labels check
+            if (multipleVersionLabels.length > 1) {
+              const message = [
+                '⚠️ **Multiple Version Labels Detected**',
+                '',
+                `This PR has multiple version labels: ${multipleVersionLabels.map(l => `\`${l}\``).join(', ')}`,
+                '',
+                '**Please keep only ONE version label:**',
+                '- `major` 💥 - Breaking changes, incompatible API changes',
+                '- `minor` ✨ - New features, backward-compatible functionality',  
+                '- `patch` 🐛 - Bug fixes, backward-compatible fixes',
+                '',
+                '**The automation will use the highest priority:** major > minor > patch',
+                '',
+                '🤖 Once you fix the labels, the appropriate template will be applied automatically!'
+              ].join('\n');
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: message
+              });
+
+              core.setFailed(`Multiple version labels found: ${multipleVersionLabels.join(', ')}. Please keep only one.`);
+              return;
+            }
+
+            // Missing version label check
+            if (!hasVersionLabel) {
+              const message = [
+                '🏷️ **Version Label Required**',
+                '',
+                `This PR targets \`${targetBranch}\` branch and requires exactly **one** version label.`,
+                '',
+                '**Choose the appropriate label:**',
+                '',
+                '### 🐛 `patch` - Bug Fixes & Maintenance',
+                '- Bug fixes and hotfixes',
+                '- Documentation updates', 
+                '- Code refactoring (no behavior change)',
+                '- Dependency updates',
+                '- Performance optimizations',
+                '- Security patches',
+                '',
+                '### ✨ `minor` - New Features',
+                '- New features and functionality',
+                '- New API endpoints',
+                '- Enhanced existing functionality', 
+                '- New integrations',
+                '- New UI components',
+                '',
+                '### 💥 `major` - Breaking Changes',
+                '- Breaking API changes',
+                '- Database schema changes',
+                '- Architecture overhauls',
+                '- Incompatible changes',
+                '- Major version updates',
+                '',
+                '---',
+                '',
+                '**🤖 Once you add a label, the appropriate PR template will be applied automatically!**',
+                '',
+                '📚 Need help? Check the [PR Template Guide](.github/PULL_REQUEST_TEMPLATE/README.md)',
+              ].join('\n');
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: message
+              });
+
               core.setFailed(
-                "This PR must have at least one label among 'major', 'minor', or 'patch' before it can be merged."
+                `This PR must have exactly one version label (major, minor, or patch) before it can be merged into '${targetBranch}'.`
               );
+              return;
+            }
+
+            // Success case
+            const versionLabel = multipleVersionLabels[0];
+            const labelEmojis = { major: '💥', minor: '✨', patch: '🐛' };
+            const emoji = labelEmojis[versionLabel] || '🏷️';
+            
+            console.log(`✅ PR has valid version label: ${versionLabel}`);
+            
+            // Optional: Add a success comment only on first label application
+            if (context.payload.action === 'labeled' && versionLabels.includes(context.payload.label?.name)) {
+              const successMessage = [
+                `${emoji} **Version Label Applied Successfully**`,
+                '',
+                `Great! This PR is now labeled as a **${versionLabel}** release.`,
+                '',
+                '**What happens next:**',
+                '- 🤖 PR template will be applied automatically',
+                '- 📝 Please fill out the template sections',
+                '- ✅ All tests must pass before merge',
+                `- 🚀 On merge, this will trigger a ${versionLabel} version bump`,
+                '',
+                '**Release Impact:**',
+                versionLabel === 'major' ? '- 💥 Breaking changes - major version bump (e.g., 1.0.0 → 2.0.0)' :
+                versionLabel === 'minor' ? '- ✨ New features - minor version bump (e.g., 1.0.0 → 1.1.0)' :
+                '- 🐛 Bug fixes - patch version bump (e.g., 1.0.0 → 1.0.1)',
+                '',
+                'Thank you for following our contribution guidelines! 🎉'
+              ].join('\n');
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: successMessage
+              });
             }

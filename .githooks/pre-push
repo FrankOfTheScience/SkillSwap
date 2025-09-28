@@ -1,22 +1,230 @@
 #!/bin/sh
 # .githooks/pre-push
+# Enhanced pre-push hook with comprehensive checks
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
 
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
+REMOTE_URL=$(git config --get remote.origin.url)
+PROJECT_NAME="SkillSwap"
 
-if [ "$BRANCH" = "development" ]; then
-  echo ">>> REMINDER: When you open the PR to 'staging' apply a label between: patch / minor / major"
+echo -e "${BLUE}🔍 Pre-push checks for ${PROJECT_NAME}...${NC}"
+
+# Function to check commit message format
+check_commit_messages() {
+    echo -e "${BLUE}📝 Checking commit message format...${NC}"
+    
+    # Get commits that will be pushed
+    while read local_ref local_sha remote_ref remote_sha; do
+        if [ "$local_sha" != "0000000000000000000000000000000000000000" ]; then
+            # Get commits between remote and local
+            if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
+                # New branch, check last 5 commits
+                commit_range="HEAD~5..HEAD"
+            else
+                commit_range="$remote_sha..$local_sha"
+            fi
+            
+            # Check each commit message
+            git log --pretty=format:"%H %s" "$commit_range" | while read commit_hash message; do
+                if ! echo "$message" | grep -qE "^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?: .{1,50}"; then
+                    echo -e "${YELLOW}⚠️  Commit $commit_hash has non-conventional message:${NC}"
+                    echo -e "   ${RED}$message${NC}"
+                    echo -e "   ${GREEN}Expected format: type(scope): description${NC}"
+                    echo -e "   ${GREEN}Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert${NC}"
+                fi
+            done
+        fi
+    done
+}
+
+# Function to run pre-push tests
+run_tests() {
+    echo -e "${BLUE}🧪 Running tests...${NC}"
+    
+    # Check if this is a .NET project
+    if [ -f "SkillSwap.sln" ]; then
+        echo -e "${BLUE}🔨 Building .NET solution...${NC}"
+        if ! dotnet build --no-restore --verbosity quiet; then
+            echo -e "${RED}❌ Build failed! Push cancelled.${NC}"
+            return 1
+        fi
+        
+        echo -e "${BLUE}🧪 Running .NET tests...${NC}"
+        if ! dotnet test --no-build --verbosity quiet --logger "console;verbosity=minimal"; then
+            echo -e "${RED}❌ Tests failed! Push cancelled.${NC}"
+            return 1
+        fi
+        echo -e "${GREEN}✅ All .NET tests passed${NC}"
+    fi
+    
+    # Check if there's a frontend project
+    if [ -d "frontend/skill-swap-web" ]; then
+        echo -e "${BLUE}🌐 Checking frontend...${NC}"
+        cd frontend/skill-swap-web
+        
+        if [ -f "package.json" ]; then
+            # Check if node_modules exists
+            if [ ! -d "node_modules" ]; then
+                echo -e "${YELLOW}📦 Installing frontend dependencies...${NC}"
+                npm ci --silent
+            fi
+            
+            # Run linting if available
+            if npm run lint --silent > /dev/null 2>&1; then
+                echo -e "${BLUE}🔍 Running ESLint...${NC}"
+                if ! npm run lint --silent; then
+                    echo -e "${RED}❌ Linting failed! Push cancelled.${NC}"
+                    cd ../..
+                    return 1
+                fi
+                echo -e "${GREEN}✅ Linting passed${NC}"
+            fi
+            
+            # Run type checking if available
+            if npm run type-check --silent > /dev/null 2>&1; then
+                echo -e "${BLUE}📊 Running type check...${NC}"
+                if ! npm run type-check --silent; then
+                    echo -e "${RED}❌ Type check failed! Push cancelled.${NC}"
+                    cd ../..
+                    return 1
+                fi
+                echo -e "${GREEN}✅ Type check passed${NC}"
+            fi
+            
+            # Run tests if available
+            if npm run test --silent > /dev/null 2>&1; then
+                echo -e "${BLUE}🧪 Running frontend tests...${NC}"
+                if ! npm run test -- --watchAll=false --silent; then
+                    echo -e "${RED}❌ Frontend tests failed! Push cancelled.${NC}"
+                    cd ../..
+                    return 1
+                fi
+                echo -e "${GREEN}✅ Frontend tests passed${NC}"
+            fi
+        fi
+        cd ../..
+    fi
+    
+    return 0
+}
+
+# Function to check for secrets
+check_secrets() {
+    echo -e "${BLUE}🔐 Checking for potential secrets...${NC}"
+    
+    # Common secret patterns
+    secret_patterns=(
+        "password\s*=\s*['\"][^'\"]{3,}"
+        "api[_-]?key\s*=\s*['\"][^'\"]{10,}"
+        "secret\s*=\s*['\"][^'\"]{10,}"
+        "token\s*=\s*['\"][^'\"]{10,}"
+        "connectionstring.*password"
+        "jdbc:.*://.*:.*@"
+    )
+    
+    found_secrets=false
+    
+    # Check staged files for secrets
+    for pattern in "${secret_patterns[@]}"; do
+        if git diff --cached --name-only | xargs grep -l -i -E "$pattern" 2>/dev/null; then
+            found_secrets=true
+            echo -e "${RED}⚠️  Potential secret found matching pattern: $pattern${NC}"
+        fi
+    done
+    
+    if [ "$found_secrets" = true ]; then
+        echo -e "${YELLOW}🔍 Please verify no actual secrets are being committed${NC}"
+        echo -e "${GREEN}💡 Use user secrets, environment variables, or configuration files marked in .gitignore${NC}"
+        read -p "Continue anyway? (y/N): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo -e "${RED}❌ Push cancelled by user${NC}"
+            return 1
+        fi
+    fi
+    
+    return 0
+}
+
+# Function to validate branch protection
+validate_branch_rules() {
+    case "$1" in
+        refs/heads/main|refs/heads/master)
+            echo -e "${RED}❌ Direct push to main/master branch is not allowed${NC}"
+            echo -e "${GREEN}💡 Please create a PR from development branch${NC}"
+            return 1
+            ;;
+        refs/heads/staging)
+            echo -e "${YELLOW}⚠️  WARNING: You are pushing directly to 'staging'${NC}"
+            echo -e "${GREEN}💡 Consider opening a PR from 'development' to 'staging' with proper labels${NC}"
+            read -p "Continue with direct push? (y/N): " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                echo -e "${RED}❌ Push cancelled by user${NC}"
+                return 1
+            fi
+            ;;
+    esac
+    return 0
+}
+
+# Main execution
+echo -e "${GREEN}📂 Repository: $PROJECT_NAME${NC}"
+echo -e "${GREEN}🌿 Branch: $BRANCH${NC}"
+
+# Run commit message checks
+check_commit_messages
+
+# Check for secrets
+if ! check_secrets; then
+    exit 1
 fi
 
-while read local_ref local_sha remote_ref remote_sha
-do
-  case "$remote_ref" in
-    refs/heads/staging)
-      echo ">>> WARNING: You are pushing directly on 'staging'"
-      echo ">>> Advice: Open a PR from 'development' towards 'staging' with the correct label"
-      # To disable direct push decomment next line:
-      # exit 1
-      ;;
-  esac
+# Check what's being pushed and validate
+while read local_ref local_sha remote_ref remote_sha; do
+    echo -e "${BLUE}🚀 Pushing $local_ref to $remote_ref${NC}"
+    
+    # Validate branch rules
+    if ! validate_branch_rules "$remote_ref"; then
+        exit 1
+    fi
+    
+    # Skip tests for delete operations
+    if [ "$local_sha" = "0000000000000000000000000000000000000000" ]; then
+        echo -e "${YELLOW}🗑️  Deleting remote branch, skipping tests${NC}"
+        continue
+    fi
+    
+    # Run tests for important branches
+    case "$remote_ref" in
+        refs/heads/main|refs/heads/master|refs/heads/staging|refs/heads/development)
+            if ! run_tests; then
+                exit 1
+            fi
+            ;;
+    esac
 done
+
+# Branch-specific reminders
+case "$BRANCH" in
+    development)
+        echo -e "${YELLOW}📋 REMINDER: When opening PR to 'staging', apply a label: patch/minor/major${NC}"
+        echo -e "${GREEN}✨ The PR template will be automatically applied based on the label${NC}"
+        ;;
+    main|master)
+        echo -e "${GREEN}🎉 Pushing to main branch - triggering production deployment${NC}"
+        ;;
+    staging)
+        echo -e "${GREEN}🚀 Pushing to staging - triggering staging deployment${NC}"
+        ;;
+esac
+
+echo -e "${GREEN}✅ All pre-push checks passed!${NC}"
+echo -e "${BLUE}🚀 Push proceeding...${NC}"
 
 exit 0

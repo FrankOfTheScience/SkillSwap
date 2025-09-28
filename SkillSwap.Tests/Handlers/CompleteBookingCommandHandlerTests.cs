@@ -269,8 +269,8 @@ public class CompleteBookingCommandHandlerTests : IDisposable
         var command = new CompleteBookingCommand
         {
             BookingId = booking.Id,
-            StripeCheckoutSessionId = null,
-            StripePaymentIntentId = null,
+            StripeCheckoutSessionId = null!,
+            StripePaymentIntentId = null!,
             PaymentStatus = "succeeded"
         };
 
