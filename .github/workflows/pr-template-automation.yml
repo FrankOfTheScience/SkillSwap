@@ -71,7 +71,7 @@ jobs:
                   `2. Remove and re-add the \`${labelName}\` label`,
                   '',
                   `Or you can manually copy the template content from \`.github/PULL_REQUEST_TEMPLATE/${labelName}.md\``
-                ].join('\\n')
+                ].join('\n')
               });
               return;
             }
@@ -99,7 +99,7 @@ jobs:
                   `I tried to apply the ${templateToUse} template, but couldn't find the template file at \`${templatePath}\`.`,
                   '',
                   'Please manually copy the appropriate template or check that the template files exist in the repository.'
-                ].join('\\n')
+                ].join('\n')
               });
               return;
             }
@@ -133,7 +133,7 @@ jobs:
 
             let warningMessage = '';
             if (presentVersionLabels.length > 1) {
-              warningMessage = `\\n⚠️ **Multiple version labels detected:** ${presentVersionLabels.join(', ')}. I used the **${templateToUse}** template (highest priority). Please remove any incorrect labels.\\n`;
+              warningMessage = `\n⚠️ **Multiple version labels detected:** ${presentVersionLabels.join(', ')}. I used the **${templateToUse}** template (highest priority). Please remove any incorrect labels.\n`;
             }
 
             await github.rest.issues.createComment({
@@ -158,7 +158,7 @@ jobs:
                 '- Link any related issues or PRs',
                 '',
                 'If you need to modify the template or this was applied incorrectly, you can edit the PR description directly.'
-              ].join('\\n')
+              ].join('\n')
             });
 
             console.log(`Successfully applied ${templateToUse} template and updated PR title`);
