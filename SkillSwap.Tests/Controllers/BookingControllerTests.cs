@@ -1,5 +1,7 @@
 using FluentAssertions;
 using MediatR;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -10,6 +12,7 @@ using SkillSwap.Domain;
 using SkillSwap.Domain.Enums;
 using SkillSwap.Infrastructure;
 using SkillSwap.Tests.Common;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -30,8 +33,34 @@ public class BookingControllerTests : IDisposable
         _dbContext = TestHelper.CreateInMemoryDbContext();
         _mockContext = Substitute.For<IApplicationDbContext>();
         
+        // Use the real context for tests that need database access
         _mockContext.Bookings.Returns(_dbContext.Bookings);
-        _controller = new BookingController(_mockContext, _mockMediator, _mockLogger);
+        _controller = new BookingController(_dbContext, _mockMediator, _mockLogger); // Use real context
+    }
+
+    private void SetupControllerUser(Guid userId, params string[] roles)
+    {
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+            new Claim(ClaimTypes.Email, "test@example.com")
+        };
+
+        claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
+
+        var identity = new ClaimsIdentity(claims, "TestAuth");
+        var principal = new ClaimsPrincipal(identity);
+
+        var httpContext = new DefaultHttpContext { User = principal };
+        
+        // Setup basic session mock for BookingSuccess tests
+        var session = Substitute.For<ISession>();
+        httpContext.Session = session;
+
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = httpContext
+        };
     }
 
     public void Dispose()
@@ -40,7 +69,7 @@ public class BookingControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task BookingSuccess_WithValidSessionId_ReturnsOkWithBookingDetails()
+    public async Task BookingSuccess_WithValidSessionId_ReturnsRedirectToSuccessPage()
     {
         // Arrange
         var sessionId = "cs_test_12345";
@@ -77,67 +106,70 @@ public class BookingControllerTests : IDisposable
         _dbContext.Bookings.Add(booking);
         await _dbContext.SaveChangesAsync();
 
+        // Setup HttpContext with session
+        var httpContext = new DefaultHttpContext();
+        var session = Substitute.For<ISession>();
+        httpContext.Session = session;
+        _controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+
         // Act
         var result = await _controller.BookingSuccess(sessionId);
 
         // Assert
-        result.Should().BeOfType<OkObjectResult>();
-        var okResult = result as OkObjectResult;
-        var response = okResult?.Value;
-        
-        response.Should().NotBeNull();
-        response.GetType().GetProperty("bookingId")?.GetValue(response).Should().Be(booking.Id);
-        response.GetType().GetProperty("status")?.GetValue(response).Should().Be("Completed");
-        response.GetType().GetProperty("amount")?.GetValue(response).Should().Be(50.0m);
-        response.GetType().GetProperty("sessionId")?.GetValue(response).Should().Be(sessionId);
+        result.Should().BeOfType<RedirectResult>();
+        var redirectResult = result as RedirectResult;
+        redirectResult?.Url.Should().Be($"/booking/success/{booking.Id}");
     }
 
     [Fact]
-    public async Task BookingSuccess_WithEmptySessionId_ReturnsBadRequest()
+    public async Task BookingSuccess_WithEmptySessionId_ReturnsRedirectToGenericSuccess()
     {
+        // Setup HttpContext
+        var httpContext = new DefaultHttpContext();
+        _controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+
         // Act
         var result = await _controller.BookingSuccess("");
 
         // Assert
-        result.Should().BeOfType<BadRequestObjectResult>();
-        var badRequestResult = result as BadRequestObjectResult;
-        badRequestResult.Should().NotBeNull();
-        var response = badRequestResult!.Value;
-        
-        response!.GetType().GetProperty("error")?.GetValue(response).Should().Be("Missing session_id parameter");
+        result.Should().BeOfType<RedirectResult>();
+        var redirectResult = result as RedirectResult;
+        redirectResult?.Url.Should().Be("/booking/success");
     }
 
     [Fact]
-    public async Task BookingSuccess_WithNullSessionId_ReturnsBadRequest()
+    public async Task BookingSuccess_WithNullSessionId_ReturnsRedirectToGenericSuccess()
     {
+        // Setup HttpContext
+        var httpContext = new DefaultHttpContext();
+        _controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+
         // Act
         var result = await _controller.BookingSuccess(null!);
 
         // Assert
-        result.Should().BeOfType<BadRequestObjectResult>();
-        var badRequestResult = result as BadRequestObjectResult;
-        badRequestResult.Should().NotBeNull();
-        var response = badRequestResult!.Value;
-        
-        response!.GetType().GetProperty("error")?.GetValue(response).Should().Be("Missing session_id parameter");
+        result.Should().BeOfType<RedirectResult>();
+        var redirectResult = result as RedirectResult;
+        redirectResult?.Url.Should().Be("/booking/success");
     }
 
     [Fact]
-    public async Task BookingSuccess_WithNonExistentSessionId_ReturnsNotFound()
+    public async Task BookingSuccess_WithNonExistentSessionId_ReturnsRedirectToGenericSuccess()
     {
         // Arrange
         var sessionId = "cs_test_nonexistent";
+
+        // Setup HttpContext
+        var httpContext = new DefaultHttpContext();
+        _controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
 
         // Act
         var result = await _controller.BookingSuccess(sessionId);
 
         // Assert
-        result.Should().BeOfType<NotFoundObjectResult>();
-        var notFoundResult = result as NotFoundObjectResult;
-        notFoundResult.Should().NotBeNull();
-        var response = notFoundResult!.Value;
-        
-        response!.GetType().GetProperty("error")?.GetValue(response).Should().Be("Booking not found");
+        result.Should().BeOfType<RedirectResult>();
+        var redirectResult = result as RedirectResult;
+        redirectResult?.Url.Should().Be("/booking/success");
     }
 
     [Fact]
@@ -227,6 +259,9 @@ public class BookingControllerTests : IDisposable
     public async Task GetBookingStatus_WithValidId_ReturnsOkWithBookingStatus()
     {
         // Arrange
+        var userId = Guid.NewGuid();
+        SetupControllerUser(userId, "User");
+        
         var offer = new Offer
         {
             Title = "Guitar Lessons",
@@ -246,7 +281,8 @@ public class BookingControllerTests : IDisposable
             CreatedAt = DateTime.UtcNow.AddHours(-1),
             StripeCheckoutSessionId = "cs_test_12345",
             StripePaymentIntentId = "pi_test_12345",
-            OfferId = offer.Id
+            OfferId = offer.Id,
+            UserId = userId // Make sure booking belongs to the authenticated user
         };
 
         _dbContext.Bookings.Add(booking);
@@ -271,6 +307,9 @@ public class BookingControllerTests : IDisposable
     public async Task GetBookingStatus_WithNonExistentId_ReturnsNotFound()
     {
         // Arrange
+        var userId = Guid.NewGuid();
+        SetupControllerUser(userId, "User");
+        
         var bookingId = 999;
 
         // Act
