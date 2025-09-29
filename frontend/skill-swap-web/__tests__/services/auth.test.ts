@@ -87,9 +87,30 @@ describe('Auth Service', () => {
 
   describe('register', () => {
     it('should register user successfully', async () => {
-      mockedApi.post.mockResolvedValueOnce({ data: { success: true } })
+      const mockToken = 'register-mock-token'
+      const expectedUser = {
+        id: '456',
+        email: 'new@example.com',
+        displayName: 'New User',
+        role: 'User' as const,
+        token: mockToken
+      }
 
-      await register({
+      // Mock API response with token (auto-login scenario)
+      mockedApi.post.mockResolvedValueOnce({ data: { token: mockToken } })
+
+      // Mock localStorage.getItem for getCurrentUser
+      mockLocalStorage.getItem.mockReturnValueOnce(mockToken)
+
+      // Mock JWT decode
+      mockedJwtDecode.mockReturnValueOnce({
+        sub: '456',
+        email: 'new@example.com',
+        displayName: 'New User',
+        role: 'User'
+      })
+
+      const result = await register({
         email: 'new@example.com',
         displayName: 'New User',
         password: 'password123'
@@ -100,6 +121,8 @@ describe('Auth Service', () => {
         displayName: 'New User',
         password: 'password123'
       })
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith('token', mockToken)
+      expect(result).toEqual(expectedUser)
     })
 
     it('should handle registration failure', async () => {
