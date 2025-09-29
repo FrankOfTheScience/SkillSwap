@@ -123,15 +123,21 @@ export interface Booking {
 export interface CreateBookingRequest {
   offerId: number;
   userId: string; // This will be overridden by backend with token data
-  scheduledDateTime: string;
+  scheduledDateTime?: string;
+  durationInMinutes?: number;
   customerNotes?: string;
+  location?: string;
+  isOnline?: boolean;
 }
 
 export interface CreateCheckoutSessionRequest {
   offerId: number;
   userId: string; // This will be overridden by backend with token data  
-  scheduledDateTime: string;
+  scheduledDateTime?: string;
+  durationInMinutes?: number;
   customerNotes?: string;
+  location?: string;
+  isOnline?: boolean;
 }
 
 export interface CreateCheckoutSessionResponse {

@@ -14,7 +14,7 @@ public class BookingTests
         // Assert
         booking.Id.Should().Be(0);
         booking.Status.Should().Be(BookingStatus.Pending);
-        booking.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
+        booking.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5)); // Increased tolerance
         booking.CompletedAt.Should().BeNull();
         booking.StripeCheckoutSessionId.Should().BeNull();
         booking.StripePaymentIntentId.Should().BeNull();

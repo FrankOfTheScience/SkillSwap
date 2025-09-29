@@ -11,6 +11,7 @@ import ViewOfferModal from "../components/ViewOfferModal";
 import EditOfferModal from "../components/EditOfferModal";
 import BookingSuccessModal from "../components/BookingSuccessModal";
 import BookingConfirmModal from "../components/BookingConfirmModal";
+import ProfileCard from "../components/ProfileCard";
 import { User, Offer } from "../types";
 
 function HomePage() {
@@ -220,6 +221,9 @@ function HomePage() {
           </div>
         )}
       </div>
+
+      {/* Profile Completion Card */}
+      {user && <ProfileCard user={user} />}
 
       {/* Offers Section */}
       <div>

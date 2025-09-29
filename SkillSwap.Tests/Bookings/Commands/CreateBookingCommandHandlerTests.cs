@@ -54,7 +54,8 @@ public class CreateBookingCommandHandlerTests : IDisposable
     {
         // Arrange
         var validator = CreateMockValidator(true);
-        var handler = new CreateBookingCommandHandler(_context, validator);
+        var notificationService = Substitute.For<IDashboardNotificationService>();
+        var handler = new CreateBookingCommandHandler(_context, validator, notificationService);
         
         var user = await _context.Users.FirstAsync();
         var command = new CreateBookingCommand(OfferId: 1, UserId: user.Id);
@@ -76,7 +77,8 @@ public class CreateBookingCommandHandlerTests : IDisposable
     {
         // Arrange
         var validator = CreateMockValidator(false);
-        var handler = new CreateBookingCommandHandler(_context, validator);
+        var notificationService = Substitute.For<IDashboardNotificationService>();
+        var handler = new CreateBookingCommandHandler(_context, validator, notificationService);
         
         var command = new CreateBookingCommand(OfferId: 1, UserId: Guid.NewGuid());
         
@@ -90,7 +92,8 @@ public class CreateBookingCommandHandlerTests : IDisposable
     {
         // Arrange
         var validator = CreateMockValidator(true);
-        var handler = new CreateBookingCommandHandler(_context, validator);
+        var notificationService = Substitute.For<IDashboardNotificationService>();
+        var handler = new CreateBookingCommandHandler(_context, validator, notificationService);
         
         var user = await _context.Users.FirstAsync();
         var command = new CreateBookingCommand(OfferId: 999, UserId: user.Id); // Non-existent offer
@@ -106,7 +109,8 @@ public class CreateBookingCommandHandlerTests : IDisposable
     {
         // Arrange
         var validator = CreateMockValidator(true);
-        var handler = new CreateBookingCommandHandler(_context, validator);
+        var notificationService = Substitute.For<IDashboardNotificationService>();
+        var handler = new CreateBookingCommandHandler(_context, validator, notificationService);
         
         var nonExistentUserId = Guid.NewGuid();
         var command = new CreateBookingCommand(OfferId: 1, UserId: nonExistentUserId);
@@ -122,7 +126,8 @@ public class CreateBookingCommandHandlerTests : IDisposable
     {
         // Arrange
         var validator = CreateMockValidator(true);
-        var handler = new CreateBookingCommandHandler(_context, validator);
+        var notificationService = Substitute.For<IDashboardNotificationService>();
+        var handler = new CreateBookingCommandHandler(_context, validator, notificationService);
         
         var user = await _context.Users.FirstAsync();
         var command = new CreateBookingCommand(OfferId: 1, UserId: user.Id);

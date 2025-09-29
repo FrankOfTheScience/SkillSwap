@@ -40,6 +40,9 @@ internal class Program
         
         // Add controller support for webhook and booking endpoints
         builder.Services.AddControllers();
+        
+        // Add SignalR
+        builder.Services.AddSignalR();
 
         var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
                                ?? Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
@@ -87,6 +90,10 @@ internal class Program
         // Register Stripe services with resilience
         builder.Services.AddScoped<SkillSwap.Application.Common.Interfaces.IStripeService, SkillSwap.Api.Services.StripeService>();
         builder.Services.AddScoped<SkillSwap.Application.Common.Interfaces.IStripeEventParser, SkillSwap.Api.Services.StripeEventParser>();
+
+        // Register dashboard service
+        builder.Services.AddScoped<SkillSwap.Api.Services.IDashboardService, SkillSwap.Api.Services.DashboardService>();
+        builder.Services.AddScoped<SkillSwap.Application.Common.Interfaces.IDashboardNotificationService, SkillSwap.Api.Services.DashboardService>();
 
 
         // Add session support for secure booking flow
@@ -196,6 +203,9 @@ internal class Program
 
         // Map controllers for all API endpoints
         app.MapControllers();
+        
+        // Map SignalR hubs
+        app.MapHub<SkillSwap.Api.Hubs.DashboardHub>("/hubs/dashboard");
 
         app.Run();
     }

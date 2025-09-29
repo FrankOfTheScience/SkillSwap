@@ -80,7 +80,12 @@ public class CheckoutController : ControllerBase
             // Override request UserId with token UserId for security
             var createBookingCommand = new CreateBookingCommand(
                 request.OfferId,
-                userId
+                userId,
+                request.ScheduledDateTime,
+                request.DurationInMinutes,
+                request.CustomerNotes,
+                request.Location,
+                request.IsOnline
             );
 
             // Create the booking

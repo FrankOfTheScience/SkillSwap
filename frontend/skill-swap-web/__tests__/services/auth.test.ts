@@ -36,13 +36,6 @@ describe('Auth Service', () => {
   describe('login', () => {
     it('should login user and return user data', async () => {
       const mockToken = 'mock-jwt-token'
-      const expectedUser = {
-        id: '123',
-        email: 'test@example.com',
-        displayName: 'Test User',
-        role: 'User' as const,
-        token: mockToken
-      }
 
       // Mock API response
       mockedApi.post.mockResolvedValueOnce({
@@ -70,7 +63,22 @@ describe('Auth Service', () => {
         password: 'password123'
       })
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith('token', mockToken)
-      expect(result).toEqual(expectedUser)
+      
+      // Check that result has the expected structure
+      expect(result).toMatchObject({
+        id: '123',
+        email: 'test@example.com',
+        displayName: 'Test User',
+        role: 'User',
+        token: mockToken,
+        profileCompletionPercentage: 0,
+        yearsOfExperience: 0,
+        skills: [],
+        preferredLanguage: 'en',
+        emailNotifications: true,
+        pushNotifications: true
+      })
+      expect(result.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
     })
 
     it('should handle login failure', async () => {
@@ -88,13 +96,6 @@ describe('Auth Service', () => {
   describe('register', () => {
     it('should register user successfully', async () => {
       const mockToken = 'register-mock-token'
-      const expectedUser = {
-        id: '456',
-        email: 'new@example.com',
-        displayName: 'New User',
-        role: 'User' as const,
-        token: mockToken
-      }
 
       // Mock API response with token (auto-login scenario)
       mockedApi.post.mockResolvedValueOnce({ data: { token: mockToken } })
@@ -122,7 +123,22 @@ describe('Auth Service', () => {
         password: 'password123'
       })
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith('token', mockToken)
-      expect(result).toEqual(expectedUser)
+      
+      // Check that result has the expected structure
+      expect(result).toMatchObject({
+        id: '456',
+        email: 'new@example.com',
+        displayName: 'New User',
+        role: 'User',
+        token: mockToken,
+        profileCompletionPercentage: 0,
+        yearsOfExperience: 0,
+        skills: [],
+        preferredLanguage: 'en',
+        emailNotifications: true,
+        pushNotifications: true
+      })
+      expect(result.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
     })
 
     it('should handle registration failure', async () => {
@@ -168,13 +184,22 @@ describe('Auth Service', () => {
 
       expect(mockLocalStorage.getItem).toHaveBeenCalledWith('token')
       expect(mockedJwtDecode).toHaveBeenCalledWith(mockToken)
-      expect(result).toEqual({
+      
+      // Check that result has the expected structure
+      expect(result).toMatchObject({
         id: '123',
         email: 'test@example.com',
         displayName: 'Test User',
         role: 'User',
-        token: mockToken
+        token: mockToken,
+        profileCompletionPercentage: 0,
+        yearsOfExperience: 0,
+        skills: [],
+        preferredLanguage: 'en',
+        emailNotifications: true,
+        pushNotifications: true
       })
+      expect(result?.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
     })
 
     it('should handle role from different claim formats', () => {
