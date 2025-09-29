@@ -16,7 +16,7 @@ export const createCheckoutSession = async (
   request: CreateCheckoutSessionRequest
 ): Promise<CreateCheckoutSessionResponse> => {
   try {
-    const response = await api.post<CreateCheckoutSessionResponse>("/checkout-session", request);
+    const response = await api.post<CreateCheckoutSessionResponse>("/api/checkout/session", request);
     return response.data;
   } catch (error) {
     const friendlyMessage = getErrorMessage(error);
@@ -35,7 +35,7 @@ export const getUserBookings = async (
   pageSize: number = 10
 ): Promise<PaginatedResponse<Booking>> => {
   try {
-    const response = await api.get<PaginatedResponse<Booking>>("/bookings/my-bookings", {
+    const response = await api.get<PaginatedResponse<Booking>>("/api/bookings", {
       params: { page, pageSize }
     });
     return response.data;
@@ -52,7 +52,7 @@ export const getUserBookings = async (
  */
 export const getBooking = async (bookingId: number): Promise<Booking> => {
   try {
-    const response = await api.get<Booking>(`/bookings/${bookingId}`);
+    const response = await api.get<Booking>(`/api/bookings/${bookingId}`);
     return response.data;
   } catch (error) {
     const friendlyMessage = getErrorMessage(error);
@@ -67,7 +67,7 @@ export const getBooking = async (bookingId: number): Promise<Booking> => {
  */
 export const cancelBooking = async (bookingId: number): Promise<void> => {
   try {
-    await api.patch(`/bookings/${bookingId}/cancel`);
+    await api.patch(`/api/bookings/${bookingId}/cancel`);
   } catch (error) {
     const friendlyMessage = getErrorMessage(error);
     throw new Error(friendlyMessage);

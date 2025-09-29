@@ -15,7 +15,7 @@ export default function OfferForm({ offerId }: OfferFormProps) {
 
   useEffect(() => {
     if (offerId) {
-      api.get(`/offers/${offerId}`).then(res => {
+      api.get(`/api/offers/${offerId}`).then(res => {
         setTitle(res.data.title);
         setDescription(res.data.description);
         setPrice(res.data.price);
@@ -26,9 +26,9 @@ export default function OfferForm({ offerId }: OfferFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (offerId) {
-      await api.put(`/offers/${offerId}`, { title, description, price });
+      await api.put(`/api/offers/${offerId}`, { title, description, price });
     } else {
-      await api.post("/offers", { title, description, price });
+      await api.post("/api/offers", { title, description, price });
     }
     router.push("/offers");
   };

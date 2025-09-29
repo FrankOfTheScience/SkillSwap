@@ -36,6 +36,26 @@ public class CheckoutController : ControllerBase
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    private string GetBaseUrl(HttpRequest request)
+    {
+        var scheme = request.Scheme;
+        var host = request.Host.Value;
+        
+        // For development, determine the frontend port based on the API port
+        if (request.Host.Host == "localhost")
+        {
+            var frontendPort = request.Host.Port switch
+            {
+                5000 or 5001 => 3000, // Default development frontend port
+                7000 or 7001 => 3000, // Alternative API ports
+                _ => 3000 // Default fallback
+            };
+            return $"{scheme}://localhost:{frontendPort}";
+        }
+        
+        return $"{scheme}://{host}";
+    }
+
     /// <summary>
     /// Create a Stripe checkout session
     /// </summary>
@@ -66,13 +86,21 @@ public class CheckoutController : ControllerBase
             // Create the booking
             var bookingId = await _mediator.Send(createBookingCommand);
 
-            // Get stripe configuration
+            // Get stripe configuration and build dynamic URLs
             var stripeConfig = _configuration.GetSection("Stripe");
-            var successUrl = stripeConfig["CheckoutUrls:SuccessUrl"] ?? "http://localhost:3000/booking/success?session_id={CHECKOUT_SESSION_ID}";
-            var cancelUrl = stripeConfig["CheckoutUrls:CancelUrl"] ?? "http://localhost:3000/booking/cancel";
+            var baseUrl = GetBaseUrl(Request);
+            var successUrl = stripeConfig["CheckoutUrls:SuccessUrl"] ?? $"{baseUrl}/?showModal=bookingSuccess&session_id={{CHECKOUT_SESSION_ID}}";
+            var cancelUrl = stripeConfig["CheckoutUrls:CancelUrl"] ?? $"{baseUrl}/booking/cancel";
             
-            // Add booking ID to the success URL
-            successUrl = successUrl + "&booking_id=" + bookingId;
+            // Use dynamic base URL if not configured in appsettings
+            if (successUrl.StartsWith("http://localhost:"))
+            {
+                successUrl = $"{baseUrl}/?showModal=bookingSuccess&session_id={{CHECKOUT_SESSION_ID}}";
+            }
+            if (cancelUrl.StartsWith("http://localhost:"))
+            {
+                cancelUrl = $"{baseUrl}/booking/cancel";
+            }
 
             // Get booking details to get the amount
             var booking = await _dbContext.Bookings

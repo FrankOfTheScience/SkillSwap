@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import api from "../services/api";
 import { Offer, User } from "../types";
 import Link from "next/link";
@@ -11,6 +11,7 @@ import Toast, { useToast } from "./Toast";
 
 interface OfferListProps {
   user: User | null;
+  onViewOffer?: (offerId: number) => void;
 }
 
 interface PagedOffersResult {
@@ -21,7 +22,24 @@ interface PagedOffersResult {
   totalPages: number;
 }
 
-export default function OfferList({ user }: OfferListProps) {
+// Custom debounce hook
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
+export default function OfferList({ user, onViewOffer }: OfferListProps) {
   const [offersResult, setOffersResult] = useState<PagedOffersResult>({
     offers: [],
     totalCount: 0,
@@ -30,6 +48,7 @@ export default function OfferList({ user }: OfferListProps) {
     totalPages: 0
   });
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false); // New state for refresh operations
   const [error, setError] = useState<string | null>(null);
   
   // Filter states
@@ -51,20 +70,27 @@ export default function OfferList({ user }: OfferListProps) {
     offer: null
   });
 
-  const loadOffers = async () => {
-    setLoading(true);
+  // Debounce search input to prevent excessive API calls
+  const debouncedSearch = useDebounce(search, 300);
+
+  const loadOffers = useCallback(async (isRefresh = false) => {
+    if (offersResult.offers.length === 0) {
+      setLoading(true); // Show full loading only for initial load
+    } else {
+      setRefreshing(isRefresh); // Show subtle refresh indicator for subsequent loads
+    }
     setError(null);
     try {
       const params = new URLSearchParams();
       params.append('page', page.toString());
       params.append('pageSize', pageSize.toString());
-      if (search) params.append('search', search);
+      if (debouncedSearch) params.append('search', debouncedSearch);
       if (maxBudget !== undefined) params.append('maxBudget', maxBudget.toString());
       if (showOnlyMyOffers !== undefined) params.append('showOnlyMyOffers', showOnlyMyOffers.toString());
       params.append('sortBy', sortBy);
       params.append('sortDescending', sortDescending.toString());
 
-      const response = await api.get(`/offers?${params.toString()}`);
+      const response = await api.get(`/api/offers?${params.toString()}`);
       setOffersResult(response.data);
     } catch (error) {
       const errorMessage = getErrorMessage(error);
@@ -72,24 +98,49 @@ export default function OfferList({ user }: OfferListProps) {
       console.error("Failed to load offers:", error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, [page, pageSize, debouncedSearch, maxBudget, showOnlyMyOffers, sortBy, sortDescending, offersResult.offers.length]);
 
   useEffect(() => {
-    loadOffers();
-  }, [page, pageSize, search, maxBudget, showOnlyMyOffers, sortBy, sortDescending]); // loadOffers is recreated on every render, so we omit it to avoid infinite loops
+    const isRefresh = offersResult.offers.length > 0; // Determine if this is a refresh
+    loadOffers(isRefresh);
+  }, [loadOffers, offersResult.offers.length]);
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
+  const handleSearchSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-    setPage(1); // Reset to first page when searching
-    loadOffers();
-  };
+    // Reset to first page when searching, but don't call loadOffers directly
+    // The useEffect will handle the API call when debouncedSearch updates
+    if (page !== 1) {
+      setPage(1);
+    }
+  }, [page]);
 
-  const handleBudgetChange = (value: string) => {
+  const handleBudgetChange = useCallback((value: string) => {
     const budget = value === "" ? undefined : parseFloat(value);
     setMaxBudget(budget);
-    setPage(1);
-  };
+    if (page !== 1) {
+      setPage(1);
+    }
+  }, [page]);
+
+  const handleFilterChange = useCallback((filterType: string, value: string | boolean | undefined) => {
+    // Batch filter updates to prevent multiple re-renders
+    switch (filterType) {
+      case 'showOnlyMyOffers':
+        setShowOnlyMyOffers(value as boolean | undefined);
+        break;
+      case 'sortBy':
+        setSortBy(value as string);
+        break;
+      case 'sortDescending':
+        setSortDescending(value as boolean);
+        break;
+    }
+    if (page !== 1) {
+      setPage(1);
+    }
+  }, [page]);
 
   const handleDeleteClick = (offer: Offer) => {
     setDeleteModal({ isOpen: true, offer });
@@ -100,7 +151,7 @@ export default function OfferList({ user }: OfferListProps) {
     
     setDeleteError(null);
     try {
-      await api.delete(`/offers/${deleteModal.offer.id}`);
+      await api.delete(`/api/offers/${deleteModal.offer.id}`);
       setOffersResult(prev => ({
         ...prev,
         offers: prev.offers.filter(o => o.id !== deleteModal.offer!.id),
@@ -181,7 +232,7 @@ export default function OfferList({ user }: OfferListProps) {
               />
               <button
                 type="submit"
-                className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200"
               >
                 Search
               </button>
@@ -210,8 +261,7 @@ export default function OfferList({ user }: OfferListProps) {
                 value={showOnlyMyOffers === undefined ? "all" : showOnlyMyOffers ? "mine" : "others"}
                 onChange={(e) => {
                   const value = e.target.value;
-                  setShowOnlyMyOffers(value === "all" ? undefined : value === "mine");
-                  setPage(1);
+                  handleFilterChange('showOnlyMyOffers', value === "all" ? undefined : value === "mine");
                 }}
                 className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
               >
@@ -228,7 +278,7 @@ export default function OfferList({ user }: OfferListProps) {
             <div className="flex gap-2">
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
+                onChange={(e) => handleFilterChange('sortBy', e.target.value)}
                 className="flex-1 px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
               >
                 <option value="id">Date Created</option>
@@ -237,7 +287,7 @@ export default function OfferList({ user }: OfferListProps) {
               </select>
               <button
                 type="button"
-                onClick={() => setSortDescending(!sortDescending)}
+                onClick={() => handleFilterChange('sortDescending', !sortDescending)}
                 className={`px-3 py-2 rounded-lg border-2 transition-colors ${
                   sortDescending 
                     ? 'bg-blue-500 text-white border-blue-500' 
@@ -265,18 +315,33 @@ export default function OfferList({ user }: OfferListProps) {
 
       {/* Results Info */}
       <div className="flex justify-between items-center">
-        <p className="text-gray-600">
-          {loading ? "Loading..." : `Showing ${offersResult.offers.length} of ${offersResult.totalCount} offers`}
-        </p>
+        <div className="text-gray-600 flex items-center gap-2">
+          {loading ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              Loading...
+            </>
+          ) : (
+            <>
+              Showing {offersResult.offers.length} of {offersResult.totalCount} offers
+              {refreshing && (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  <span className="text-blue-600">Refreshing...</span>
+                </>
+              )}
+            </>
+          )}
+        </div>
         <div className="flex items-center gap-2">
-          <label className="text-sm text-gray-600">Per page:</label>
+          <label className="text-sm text-gray-600 font-medium">Per page:</label>
           <select
             value={pageSize}
             onChange={(e) => {
               setPageSize(Number(e.target.value));
               setPage(1);
             }}
-            className="px-2 py-1 border border-gray-300 rounded text-sm"
+            className="px-3 py-1 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white text-sm font-medium"
           >
             <option value={5}>5</option>
             <option value={10}>10</option>
@@ -293,16 +358,33 @@ export default function OfferList({ user }: OfferListProps) {
           <p className="mt-4 text-gray-600">Loading offers...</p>
         </div>
       ) : !error ? (
-        <div className="grid gap-6">
+        <div className="relative">
+          {/* Refreshing overlay */}
+          {refreshing && (
+            <div className="absolute inset-0 bg-white/50 backdrop-blur-sm rounded-xl z-10 flex items-center justify-center">
+              <div className="bg-white/90 backdrop-blur rounded-lg p-4 shadow-lg flex items-center gap-3">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                <span className="text-gray-700 font-medium">Updating results...</span>
+              </div>
+            </div>
+          )}
+          
+          <div className={`grid gap-6 ${refreshing ? 'pointer-events-none' : ''}`}>
           {offersResult.offers.map(offer => (
             <div key={offer.id} className="p-6 bg-white border-2 border-gray-100 rounded-xl shadow-lg hover:shadow-xl hover:border-gray-200 transition-all duration-300">
               <div className="flex justify-between items-start">
                 <div className="flex-1">
-                  <Link href={`/offers/${offer.id}/view`}>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-3 hover:text-indigo-600 transition-colors cursor-pointer">
+                  {onViewOffer ? (
+                    <h3 className="text-2xl font-bold text-gray-900 mb-3">
                       {offer.title}
                     </h3>
-                  </Link>
+                  ) : (
+                    <Link href={`/offers/${offer.id}/view`}>
+                      <h3 className="text-2xl font-bold text-gray-900 mb-3 hover:text-indigo-600 transition-colors cursor-pointer">
+                        {offer.title}
+                      </h3>
+                    </Link>
+                  )}
                   <p className="text-gray-700 mb-4 leading-relaxed">{offer.description}</p>
                   <div className="flex items-center justify-between">
                     <p className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
@@ -328,7 +410,7 @@ export default function OfferList({ user }: OfferListProps) {
                       ) : user ? (
                         <div className="flex flex-col gap-2">
                           <button 
-                            onClick={() => handleBookOffer(offer)}
+                            onClick={() => onViewOffer ? onViewOffer(offer.id) : handleBookOffer(offer)}
                             disabled={bookingLoading[offer.id]}
                             className={`px-6 py-2 rounded-lg font-semibold transition-all duration-200 transform shadow-md flex items-center gap-2 justify-center ${
                               bookingLoading[offer.id]
@@ -342,7 +424,7 @@ export default function OfferList({ user }: OfferListProps) {
                                 Processing...
                               </>
                             ) : (
-                              <>📅 Book for €{offer.price}</>
+                              <>{onViewOffer ? `👁️ View Details - €${offer.price}` : `📅 Book for €${offer.price}`}</>
                             )}
                           </button>
                           {bookingError[offer.id] && (
@@ -373,11 +455,10 @@ export default function OfferList({ user }: OfferListProps) {
                 </div>
               </div>
             </div>
-          ))}
+            ))}
+          </div>
         </div>
-      ) : null}
-
-      {/* Empty State */}
+      ) : null}      {/* Empty State */}
       {!loading && !error && offersResult.offers.length === 0 && (
         <div className="text-center py-12">
           <div className="text-6xl mb-4">📋</div>
@@ -396,7 +477,7 @@ export default function OfferList({ user }: OfferListProps) {
           <button
             onClick={() => setPage(Math.max(1, page - 1))}
             disabled={page === 1}
-            className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 disabled:from-gray-50 disabled:to-gray-100 text-gray-700 disabled:text-gray-400 rounded-lg font-medium transition-all duration-200 disabled:cursor-not-allowed border-2 border-gray-300 disabled:border-gray-200"
           >
             ← Previous
           </button>
@@ -413,10 +494,10 @@ export default function OfferList({ user }: OfferListProps) {
                   <button
                     key={pageNum}
                     onClick={() => setPage(pageNum)}
-                    className={`px-3 py-2 rounded-lg ${
+                    className={`px-3 py-2 rounded-lg font-medium transition-all duration-200 border-2 ${
                       page === pageNum
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-white border border-gray-300 hover:bg-gray-50'
+                        ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white border-blue-500 shadow-md'
+                        : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-300 hover:border-gray-400 hover:shadow-sm'
                     }`}
                   >
                     {pageNum}
@@ -430,7 +511,7 @@ export default function OfferList({ user }: OfferListProps) {
           <button
             onClick={() => setPage(Math.min(offersResult.totalPages, page + 1))}
             disabled={page === offersResult.totalPages}
-            className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 disabled:from-gray-50 disabled:to-gray-100 text-gray-700 disabled:text-gray-400 rounded-lg font-medium transition-all duration-200 disabled:cursor-not-allowed border-2 border-gray-300 disabled:border-gray-200"
           >
             Next →
           </button>

@@ -8,7 +8,7 @@ export interface RegisterData { email: string; displayName: string; password: st
 
 export const login = async (data: LoginData): Promise<User> => {
   try {
-    const res = await api.post("/auth/login", data);
+    const res = await api.post("/api/auth/login", data);
     localStorage.setItem("token", res.data.token);
     return getCurrentUser()!;
   } catch (error) {
@@ -18,9 +18,17 @@ export const login = async (data: LoginData): Promise<User> => {
   }
 };
 
-export const register = async (data: RegisterData) => {
+export const register = async (data: RegisterData): Promise<User> => {
   try {
-    await api.post("/auth/register", data);
+    const res = await api.post("/api/auth/register", data);
+    // Auto-login after successful registration
+    if (res.data.token) {
+      localStorage.setItem("token", res.data.token);
+      return getCurrentUser()!;
+    } else {
+      // If no token returned, perform login
+      return await login({ email: data.email, password: data.password });
+    }
   } catch (error) {
     // Re-throw with friendly error message
     const friendlyMessage = getErrorMessage(error);

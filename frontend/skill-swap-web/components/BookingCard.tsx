@@ -1,17 +1,21 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { Booking, BookingStatus } from "../types";
 
 interface BookingCardProps {
   booking: Booking;
   onCancel?: (bookingId: number) => void;
   showActions?: boolean;
+  onViewOffer?: (offerId: number) => void;
 }
 
 export default function BookingCard({ 
   booking, 
   onCancel, 
-  showActions = true 
+  showActions = true,
+  onViewOffer
 }: BookingCardProps) {
+  const router = useRouter();
   
   const getStatusColor = (status: BookingStatus) => {
     switch (status) {
@@ -127,7 +131,10 @@ export default function BookingCard({
       {showActions && (
         <div className="flex gap-3">
           {booking.offer && (
-            <button className="flex-1 bg-blue-100 hover:bg-blue-200 text-blue-800 py-2 px-4 rounded-lg font-medium text-sm transition-colors">
+            <button 
+              onClick={() => onViewOffer ? onViewOffer(booking.offer!.id) : router.push(`/offers/${booking.offer!.id}/view`)}
+              className="flex-1 bg-blue-100 hover:bg-blue-200 text-blue-800 py-2 px-4 rounded-lg font-medium text-sm transition-colors"
+            >
               📄 View Offer
             </button>
           )}

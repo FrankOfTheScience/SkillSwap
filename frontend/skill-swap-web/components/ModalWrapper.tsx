@@ -1,6 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface ModalWrapperProps {
   children: ReactNode;
@@ -11,6 +12,11 @@ interface ModalWrapperProps {
 
 export default function ModalWrapper({ children, title, isOpen = true, onClose }: ModalWrapperProps) {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -42,13 +48,13 @@ export default function ModalWrapper({ children, title, isOpen = true, onClose }
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
+  const modalContent = (
     <>
-      {/* Backdrop blur overlay - now transparent */}
+      {/* Backdrop overlay with blur and semi-transparent background */}
       <div 
-        className="fixed inset-0 backdrop-blur-md z-40"
+        className="fixed inset-0 bg-black/20 backdrop-blur-md z-40"
         onClick={handleBackdropClick}
       />
       
@@ -86,4 +92,7 @@ export default function ModalWrapper({ children, title, isOpen = true, onClose }
       </div>
     </>
   );
+
+  // Use portal to render modal at body level
+  return createPortal(modalContent, document.body);
 }

@@ -14,6 +14,7 @@ public class Booking
     public string? StripePaymentIntentId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? CompletedAt { get; set; }
+    public DateTime? CancelledAt { get; set; }
     
     // Navigation properties
     public Offer? Offer { get; set; }
