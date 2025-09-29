@@ -61,7 +61,14 @@ export const getCurrentUser = (): User | null => {
       email: decoded.email, 
       displayName: decoded.displayName || decoded.name || decoded.email,
       role: role as "User" | "Admin", 
-      token 
+      token,
+      createdAt: new Date().toISOString(), // JWT doesn't contain this, will be fetched from API when needed
+      profileCompletionPercentage: 0, // Will be calculated by backend
+      yearsOfExperience: 0,
+      skills: [],
+      preferredLanguage: "en",
+      emailNotifications: true,
+      pushNotifications: true
     };
     
     console.log("Parsed user:", user); // For debugging

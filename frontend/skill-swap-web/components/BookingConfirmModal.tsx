@@ -27,9 +27,16 @@ export default function BookingConfirmModal({
     setError(null);
 
     try {
+      // For now, schedule for tomorrow at 10 AM
+      // Later this will be replaced with proper date/time selection
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(10, 0, 0, 0);
+      
       const checkoutSession = await createCheckoutSession({
         offerId: offer.id,
         userId: user.id, // This will be overridden by backend with token data
+        scheduledDateTime: tomorrow.toISOString(),
       });
 
       // Redirect to Stripe checkout

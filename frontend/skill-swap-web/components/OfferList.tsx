@@ -192,9 +192,16 @@ export default function OfferList({ user, onViewOffer }: OfferListProps) {
     setBookingLoading(prev => ({ ...prev, [offer.id]: true }));
 
     try {
+      // For now, schedule for tomorrow at 10 AM
+      // Later this will be replaced with proper date/time selection
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(10, 0, 0, 0);
+      
       const checkoutSession = await createCheckoutSession({
         offerId: offer.id,
-        userId: user.id
+        userId: user.id,
+        scheduledDateTime: tomorrow.toISOString(),
       });
 
       showToast(`Redirecting to payment for "${offer.title}"...`, 'info', 2000);
