@@ -1,14 +1,16 @@
 "use client";
-import { useState, useEffect, use } from "react";
-import { useRouter } from "next/navigation";
-import api from "../../../../services/api";
-import ModalWrapper from "../../../../components/ModalWrapper";
+import { useState, useEffect } from "react";
+import api from "../services/api";
+import ModalWrapper from "./ModalWrapper";
 
-interface EditProps { params: Promise<{ id: string }> }
+interface EditOfferModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  offerId: number | null;
+  onSuccess?: () => void;
+}
 
-export default function EditOfferPage({ params }: EditProps) {
-  const router = useRouter();
-  const resolvedParams = use(params);
+export default function EditOfferModal({ isOpen, onClose, offerId, onSuccess }: EditOfferModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -17,9 +19,19 @@ export default function EditOfferPage({ params }: EditProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!isOpen || !offerId) {
+      // Reset form when modal closes
+      setTitle("");
+      setDescription("");
+      setPrice("");
+      setError("");
+      setLoading(true);
+      return;
+    }
+
     const fetchOffer = async () => {
       try {
-        const response = await api.get(`/api/offers/${resolvedParams.id}`);
+        const response = await api.get(`/api/offers/${offerId}`);
         const offer = response.data;
         setTitle(offer.title);
         setDescription(offer.description);
@@ -33,7 +45,7 @@ export default function EditOfferPage({ params }: EditProps) {
     };
 
     fetchOffer();
-  }, [resolvedParams.id]);
+  }, [isOpen, offerId]);
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value;
@@ -59,12 +71,16 @@ export default function EditOfferPage({ params }: EditProps) {
     setError("");
 
     try {
-      await api.put(`/api/offers/${resolvedParams.id}`, {
+      await api.put(`/api/offers/${offerId}`, {
         title,
         description,
         price: numericPrice
       });
-      router.push("/");
+      
+      if (onSuccess) {
+        onSuccess();
+      }
+      onClose();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string; error?: string }; status?: number }; message?: string; config?: unknown };
       console.error("Update offer error:", {
@@ -80,9 +96,17 @@ export default function EditOfferPage({ params }: EditProps) {
     }
   };
 
+  const handleClose = () => {
+    if (!isSubmitting) {
+      onClose();
+    }
+  };
+
+  if (!isOpen) return null;
+
   if (loading) {
     return (
-      <ModalWrapper title="Update Offer">
+      <ModalWrapper title="Update Offer" isOpen={isOpen} onClose={handleClose}>
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading offer details...</p>
@@ -92,7 +116,7 @@ export default function EditOfferPage({ params }: EditProps) {
   }
 
   return (
-    <ModalWrapper title="Update Offer">
+    <ModalWrapper title="Update Offer" isOpen={isOpen} onClose={handleClose}>
       <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-xl border border-blue-100 shadow-lg p-6">
         <div className="text-center mb-6">
           <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -159,8 +183,9 @@ export default function EditOfferPage({ params }: EditProps) {
           <div className="flex gap-4 pt-4">
             <button
               type="button"
-              onClick={() => router.push("/")}
-              className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-3 px-6 rounded-lg transition-colors"
+              onClick={handleClose}
+              disabled={isSubmitting}
+              className="flex-1 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 text-gray-700 font-medium py-3 px-6 rounded-lg transition-colors disabled:cursor-not-allowed"
             >
               Cancel
             </button>

@@ -40,7 +40,7 @@ export default function CreateOfferModal({ isOpen, onClose, onSuccess }: CreateO
     setError("");
 
     try {
-      await api.post("/offers", {
+      await api.post("/api/offers", {
         title,
         description,
         price: numericPrice

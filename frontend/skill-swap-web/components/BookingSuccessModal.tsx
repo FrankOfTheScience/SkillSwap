@@ -1,28 +1,26 @@
 "use client";
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import ModalWrapper from "../../../components/ModalWrapper";
+import ModalWrapper from "./ModalWrapper";
 
-function BookingSuccessContent() {
-  const router = useRouter();
+interface BookingSuccessModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onViewMyBookings?: () => void;
+}
 
-  useEffect(() => {
-    // Clear any potentially sensitive data from browser history
-    if (typeof window !== 'undefined') {
-      window.history.replaceState({}, document.title, '/booking/success');
+export default function BookingSuccessModal({ isOpen, onClose, onViewMyBookings }: BookingSuccessModalProps) {
+  const handleViewMyBookings = () => {
+    if (onViewMyBookings) {
+      onViewMyBookings();
     }
-  }, []);
-
-  const handleBackToOffers = () => {
-    router.push("/");
+    onClose();
   };
 
-  const handleViewMyBookings = () => {
-    router.push("/my-bookings");
+  const handleBackToOffers = () => {
+    onClose();
   };
 
   return (
-    <ModalWrapper title="Booking Confirmed!">
+    <ModalWrapper title="Booking Confirmed!" isOpen={isOpen} onClose={onClose}>
       <div className="text-center py-6">
         <div className="text-6xl mb-6">🎉</div>
         <h2 className="text-2xl font-bold text-gray-800 mb-4">Payment Successful!</h2>
@@ -32,8 +30,8 @@ function BookingSuccessContent() {
 
         {/* Next Steps */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8 text-left">
-          <h3 className="font-semibold text-blue-900 mb-2">What happens next?</h3>
-          <ul className="text-sm text-blue-800 space-y-1">
+          <h3 className="font-semibold text-gray-800 mb-2">What happens next?</h3>
+          <ul className="text-sm text-gray-700 space-y-1">
             <li>• The service provider will be notified of your booking</li>
             <li>• You will receive a confirmation email shortly</li>
             <li>• The provider will contact you to schedule the service</li>
@@ -43,8 +41,8 @@ function BookingSuccessContent() {
 
         {/* Security Notice */}
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-8 text-left">
-          <h3 className="font-semibold text-green-900 mb-2">🔒 Secure Payment Complete</h3>
-          <p className="text-sm text-green-800">
+          <h3 className="font-semibold text-gray-800 mb-2">🔒 Secure Payment Complete</h3>
+          <p className="text-sm text-gray-700">
             Your payment has been processed securely. For security reasons, payment details are not displayed here.
             You can view your booking details in your dashboard.
           </p>
@@ -54,13 +52,13 @@ function BookingSuccessContent() {
         <div className="flex gap-4 justify-center">
           <button
             onClick={handleViewMyBookings}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors flex items-center gap-2"
+            className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg flex items-center gap-2"
           >
             📋 View My Bookings
           </button>
           <button
             onClick={handleBackToOffers}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+            className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg"
           >
             Browse More Offers
           </button>
@@ -68,8 +66,4 @@ function BookingSuccessContent() {
       </div>
     </ModalWrapper>
   );
-}
-
-export default function BookingSuccessPage() {
-  return <BookingSuccessContent />;
 }

@@ -65,7 +65,7 @@ describe('Auth Service', () => {
         password: 'password123'
       })
 
-      expect(mockedApi.post).toHaveBeenCalledWith('/auth/login', {
+      expect(mockedApi.post).toHaveBeenCalledWith('/api/auth/login', {
         email: 'test@example.com',
         password: 'password123'
       })
@@ -95,7 +95,7 @@ describe('Auth Service', () => {
         password: 'password123'
       })
 
-      expect(mockedApi.post).toHaveBeenCalledWith('/auth/register', {
+      expect(mockedApi.post).toHaveBeenCalledWith('/api/auth/register', {
         email: 'new@example.com',
         displayName: 'New User',
         password: 'password123'

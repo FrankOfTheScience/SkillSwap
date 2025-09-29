@@ -89,6 +89,16 @@ internal class Program
         builder.Services.AddScoped<SkillSwap.Application.Common.Interfaces.IStripeEventParser, SkillSwap.Api.Services.StripeEventParser>();
 
 
+        // Add session support for secure booking flow
+        builder.Services.AddDistributedMemoryCache();
+        builder.Services.AddSession(options =>
+        {
+            options.IdleTimeout = TimeSpan.FromMinutes(20);
+            options.Cookie.HttpOnly = true;
+            options.Cookie.IsEssential = true;
+            options.Cookie.SameSite = SameSiteMode.Lax;
+        });
+
         // Register validators and mappers
         builder.Services.AddAutoMapper(typeof(OfferProfile));
         builder.Services.AddValidatorsFromAssemblyContaining<CreateOfferCommandValidator>();
@@ -161,6 +171,7 @@ internal class Program
         }
         app.UseHttpsRedirection();
         app.UseCors("AllowFrontend");
+        app.UseSession(); // Add session middleware for secure booking flow
         app.UseAuthentication();
         app.UseAuthorization();
 

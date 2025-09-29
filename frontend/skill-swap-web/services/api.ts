@@ -12,7 +12,7 @@ api.interceptors.request.use(config => {
 });
 
 export const getOffers = async (page: number = 1, pageSize: number = 10) => {
-  const response = await api.get("/offers", { params: { page, pageSize } });
+  const response = await api.get("/api/offers", { params: { page, pageSize } });
   return response.data;
 };
 
