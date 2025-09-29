@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback } from "react";
 import api from "../services/api";
 import { Offer, User } from "../types";
 import Link from "next/link";
@@ -105,7 +105,7 @@ export default function OfferList({ user, onViewOffer }: OfferListProps) {
   useEffect(() => {
     const isRefresh = offersResult.offers.length > 0; // Determine if this is a refresh
     loadOffers(isRefresh);
-  }, [loadOffers]);
+  }, [loadOffers, offersResult.offers.length]);
 
   const handleSearchSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -124,17 +124,17 @@ export default function OfferList({ user, onViewOffer }: OfferListProps) {
     }
   }, [page]);
 
-  const handleFilterChange = useCallback((filterType: string, value: any) => {
+  const handleFilterChange = useCallback((filterType: string, value: string | boolean | undefined) => {
     // Batch filter updates to prevent multiple re-renders
     switch (filterType) {
       case 'showOnlyMyOffers':
-        setShowOnlyMyOffers(value);
+        setShowOnlyMyOffers(value as boolean | undefined);
         break;
       case 'sortBy':
-        setSortBy(value);
+        setSortBy(value as string);
         break;
       case 'sortDescending':
-        setSortDescending(value);
+        setSortDescending(value as boolean);
         break;
     }
     if (page !== 1) {

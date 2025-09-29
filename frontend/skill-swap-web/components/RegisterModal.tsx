@@ -42,7 +42,7 @@ export default function RegisterModal({ isOpen, onClose, onSuccess, onSwitchToLo
     setError("");
 
     try {
-      const user = await register({ email, displayName, password });
+      await register({ email, displayName, password });
       // Registration and auto-login successful
       onSuccess();
       // Reset form

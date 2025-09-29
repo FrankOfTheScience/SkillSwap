@@ -11,7 +11,7 @@ import ViewOfferModal from "../components/ViewOfferModal";
 import EditOfferModal from "../components/EditOfferModal";
 import BookingSuccessModal from "../components/BookingSuccessModal";
 import BookingConfirmModal from "../components/BookingConfirmModal";
-import { User } from "../types";
+import { User, Offer } from "../types";
 
 function HomePage() {
   const router = useRouter();
@@ -30,7 +30,7 @@ function HomePage() {
   const [showBookingConfirmModal, setShowBookingConfirmModal] = useState(false);
   const [selectedOfferId, setSelectedOfferId] = useState<number | null>(null);
   const [cameFromMyBookings, setCameFromMyBookings] = useState(false);
-  const [selectedOffer, setSelectedOffer] = useState<any>(null);
+  const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
 
   useEffect(() => {
     const currentUser = getCurrentUser();
@@ -131,7 +131,7 @@ function HomePage() {
     setShowMyBookingsModal(true);
   };
 
-  const handleBookOffer = (offer: any) => {
+  const handleBookOffer = (offer: Offer) => {
     setSelectedOffer(offer);
     setShowBookingConfirmModal(true);
   };

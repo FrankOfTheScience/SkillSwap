@@ -5,7 +5,6 @@ import { Offer, User } from "../types";
 import { getCurrentUser } from "../services/auth";
 import DeleteConfirmModal from "./DeleteConfirmModal";
 import ModalWrapper from "./ModalWrapper";
-import BookingConfirmModal from "./BookingConfirmModal";
 
 interface ViewOfferModalProps {
   isOpen: boolean;
@@ -13,7 +12,7 @@ interface ViewOfferModalProps {
   offerId: number | null;
   onEdit?: (offerId: number) => void;
   onBack?: () => void;
-  onBookOffer?: (offer: any) => void;
+  onBookOffer?: (offer: Offer) => void;
 }
 
 export default function ViewOfferModal({ isOpen, onClose, offerId, onEdit, onBack, onBookOffer }: ViewOfferModalProps) {
@@ -21,7 +20,6 @@ export default function ViewOfferModal({ isOpen, onClose, offerId, onEdit, onBac
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleteModal, setDeleteModal] = useState(false);
-  const [bookingModal, setBookingModal] = useState(false);
 
   useEffect(() => {
     if (!isOpen || !offerId) {
@@ -53,9 +51,8 @@ export default function ViewOfferModal({ isOpen, onClose, offerId, onEdit, onBac
     if (onBookOffer && offer) {
       onBookOffer(offer);
       onClose();
-    } else {
-      setBookingModal(true);
     }
+    // Note: If onBookOffer is not provided, booking functionality is not available
   };
 
   const handleDeleteConfirm = async () => {
