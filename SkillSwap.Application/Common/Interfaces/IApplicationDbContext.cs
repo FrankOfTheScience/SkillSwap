@@ -7,6 +7,7 @@ public interface IApplicationDbContext
     DbSet<User> Users { get; }
     DbSet<Offer> Offers { get; }
     DbSet<Booking> Bookings { get; }
+    DbSet<OfferAvailability> OfferAvailabilities { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

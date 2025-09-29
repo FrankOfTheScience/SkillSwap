@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SkillSwap.Infrastructure;
@@ -11,9 +12,11 @@ using SkillSwap.Infrastructure;
 namespace SkillSwap.Infrastructure.Migrations
 {
     [DbContext(typeof(SkillSwapDbContext))]
-    partial class SkillSwapDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250929141847_AddUserProfileAndBookingSchedulingWithDataCleanup")]
+    partial class AddUserProfileAndBookingSchedulingWithDataCleanup
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
