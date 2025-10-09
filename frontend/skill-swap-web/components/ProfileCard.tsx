@@ -13,6 +13,9 @@ export default function ProfileCard({ user }: ProfileCardProps) {
   const [completion, setCompletion] = useState<ProfileCompletionResponse | null>(null)
   const [loading, setLoading] = useState(false)
 
+  // Skip profile completion for admin users
+  if (user.role === 'Admin') return null
+
   useEffect(() => {
     loadCompletion()
   }, [])
@@ -20,10 +23,21 @@ export default function ProfileCard({ user }: ProfileCardProps) {
   const loadCompletion = async () => {
     try {
       setLoading(true)
+      // Only load completion if user is authenticated
+      const token = localStorage.getItem('token')
+      if (!token) {
+        console.log('No auth token found, skipping profile completion check')
+        return
+      }
+      
       const data = await getProfileCompletion()
       setCompletion(data)
     } catch (error) {
       console.error('Error loading profile completion:', error)
+      // If 401, user is not authenticated - this is expected for guest users
+      if (error instanceof Error && error.message.includes('401')) {
+        console.log('User not authenticated, skipping profile completion')
+      }
     } finally {
       setLoading(false)
     }
@@ -93,7 +107,7 @@ export default function ProfileCard({ user }: ProfileCardProps) {
         </div>
         <Link
           href="/profile"
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+          className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
         >
           Complete Profile
         </Link>

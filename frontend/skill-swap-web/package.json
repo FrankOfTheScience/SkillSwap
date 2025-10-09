@@ -9,13 +9,22 @@
     "lint": "eslint",
     "test": "cross-env NODE_OPTIONS=--no-deprecation jest",
     "test:watch": "cross-env NODE_OPTIONS=--no-deprecation jest --watch",
-    "test:coverage": "cross-env NODE_OPTIONS=--no-deprecation jest --coverage"
+    "test:coverage": "cross-env NODE_OPTIONS=--no-deprecation jest --coverage",
+    "test:integration": "node __tests__/integration/test_all_flows.js",
+    "test:dashboard": "node __tests__/integration/test_dashboard.js",
+    "test:profile": "node __tests__/integration/test_profile.js",
+    "test:image-upload": "node __tests__/integration/test_image_upload.js",
+    "test:create-offer": "node __tests__/integration/test_create_offer.js",
+    "test:signalr": "node __tests__/integration/test_signalr_dashboard.js",
+    "test:auth": "node __tests__/integration/auth_test.js",
+    "test:quick": "node __tests__/integration/quick_test.js"
   },
   "dependencies": {
     "@microsoft/signalr": "^9.0.6",
     "axios": "^1.12.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "form-data": "^4.0.4",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^0.544.0",
     "next": "15.5.4",

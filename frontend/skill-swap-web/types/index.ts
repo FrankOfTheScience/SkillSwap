@@ -1,5 +1,5 @@
 export interface Offer {
-  id: number;
+  id: string;
   title: string;
   description: string;
   price: number;
@@ -29,8 +29,8 @@ export interface Offer {
 }
 
 export interface OfferAvailability {
-  id: number;
-  offerId: number;
+  id: string;
+  offerId: string;
   dayOfWeek: number; // 0 = Sunday, 1 = Monday, etc.
   startTime: string; // HH:mm format
   endTime: string; // HH:mm format
@@ -81,8 +81,8 @@ export enum BookingStatus {
 }
 
 export interface Booking {
-  id: number;
-  offerId: number;
+  id: string;
+  offerId: string;
   userId: string;
   status: BookingStatus;
   amount: number;
@@ -121,7 +121,7 @@ export interface Booking {
 }
 
 export interface CreateBookingRequest {
-  offerId: number;
+  offerId: string;
   userId: string; // This will be overridden by backend with token data
   scheduledDateTime?: string;
   durationInMinutes?: number;
@@ -131,7 +131,7 @@ export interface CreateBookingRequest {
 }
 
 export interface CreateCheckoutSessionRequest {
-  offerId: number;
+  offerId: string;
   userId: string; // This will be overridden by backend with token data  
   scheduledDateTime?: string;
   durationInMinutes?: number;
@@ -142,7 +142,7 @@ export interface CreateCheckoutSessionRequest {
 
 export interface CreateCheckoutSessionResponse {
   checkoutUrl: string;
-  bookingId: number;
+  bookingId: string;
 }
 
 // User Profile Types

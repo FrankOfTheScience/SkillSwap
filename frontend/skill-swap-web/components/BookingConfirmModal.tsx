@@ -51,7 +51,23 @@ export default function BookingConfirmModal({
       // Redirect to Stripe checkout
       redirectToCheckout(checkoutSession.checkoutUrl);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create booking");
+      console.error('Payment error:', err);
+      let errorMessage = "Failed to create booking";
+      
+      if (err instanceof Error) {
+        // Check for specific Stripe configuration errors
+        if (err.message.includes("No such customer") || 
+            err.message.includes("Invalid API key") ||
+            err.message.includes("No API key provided") ||
+            err.message.includes("401") ||
+            err.message.includes("Unauthorized")) {
+          errorMessage = "Payment system configuration error. Please contact support or check Stripe configuration.";
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      setError(errorMessage);
       setIsLoading(false);
     }
   };
@@ -75,12 +91,15 @@ export default function BookingConfirmModal({
 
   if (showDateTimeSelector) {
     return (
-      <DateTimeSelector
-        offer={offer}
-        selectedDateTime={selectedDateTime}
-        onDateTimeSelect={handleDateTimeSelect}
-        onClose={() => setShowDateTimeSelector(false)}
-      />
+      <ModalWrapper title="Select Date & Time" isOpen={isOpen} onClose={onClose}>
+        <DateTimeSelector
+          offer={offer}
+          selectedDateTime={selectedDateTime}
+          onDateTimeSelect={handleDateTimeSelect}
+          onClose={() => setShowDateTimeSelector(false)}
+          isInModal={true}
+        />
+      </ModalWrapper>
     );
   }
 
@@ -170,7 +189,7 @@ export default function BookingConfirmModal({
 
         {/* Customer Notes */}
         <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-900 mb-2">
             Notes for Provider (Optional)
           </label>
           <textarea
@@ -178,7 +197,7 @@ export default function BookingConfirmModal({
             onChange={(e) => setCustomerNotes(e.target.value)}
             placeholder="Any special requirements or questions..."
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500"
           />
         </div>
 

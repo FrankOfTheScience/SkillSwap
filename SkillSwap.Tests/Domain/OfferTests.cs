@@ -16,7 +16,7 @@ public class OfferTests
         };
 
         // Assert
-        offer.Id.Should().Be(0); // Default int value
+        offer.Id.Should().Be(Guid.Empty); // Default int value
         offer.Title.Should().Be("Default Title");
         offer.Description.Should().Be("Default Description");
         offer.Price.Should().Be(0m); // Default decimal value
@@ -27,7 +27,7 @@ public class OfferTests
     public void Offer_ShouldAllowPropertyAssignment()
     {
         // Arrange
-        var id = 123;
+        var id = Guid.NewGuid();
         var title = "Test Offer";
         var description = "Test Description";
         var price = 199.99m;
@@ -129,7 +129,7 @@ public class OfferTests
         // Arrange
         var originalCreator = Guid.NewGuid();
         var newCreator = Guid.NewGuid();
-        
+
         var offer = new Offer
         {
             Title = "Test",
@@ -172,7 +172,7 @@ public class OfferTests
         {
             Title = "ID Test",
             Description = "Testing ID persistence",
-            Id = 42
+            Id = Guid.NewGuid()
         };
 
         var originalId = offer.Id;

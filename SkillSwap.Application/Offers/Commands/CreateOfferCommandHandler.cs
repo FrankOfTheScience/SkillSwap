@@ -7,7 +7,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 namespace SkillSwap.Application.Offers.Commands;
-public class CreateOfferCommandHandler : IRequestHandler<CreateOfferCommand, int>
+public class CreateOfferCommandHandler : IRequestHandler<CreateOfferCommand, Guid>
 {
     private readonly IApplicationDbContext _db;
     private readonly IMapper _mapper;
@@ -20,9 +20,11 @@ public class CreateOfferCommandHandler : IRequestHandler<CreateOfferCommand, int
         _httpContextAccessor = httpContextAccessor;
     }
 
-    public async Task<int> Handle(CreateOfferCommand request, CancellationToken cancellationToken)
+    public async Task<Guid> Handle(CreateOfferCommand request, CancellationToken cancellationToken)
     {
         var offer = _mapper.Map<Offer>(request);
+        // Generate a new GUID for the offer
+        offer.Id = Guid.NewGuid();
         // The CreatedBy is already set from the command parameter via AutoMapper
 
         _db.Offers.Add(offer);

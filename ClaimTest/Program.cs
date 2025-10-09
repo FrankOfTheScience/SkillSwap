@@ -1,0 +1,1 @@
+using System.IdentityModel.Tokens.Jwt; using System.Security.Claims; Console.WriteLine($"JwtRegisteredClaimNames.Sub: {JwtRegisteredClaimNames.Sub}"); Console.WriteLine($"ClaimTypes.NameIdentifier: {ClaimTypes.NameIdentifier}");

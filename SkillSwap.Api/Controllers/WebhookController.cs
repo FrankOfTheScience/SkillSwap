@@ -110,7 +110,7 @@ public class WebhookController : ControllerBase
 
         // Extract booking ID from metadata
         if (session.Metadata.TryGetValue("booking_id", out var bookingIdStr) &&
-            int.TryParse(bookingIdStr, out var bookingId))
+            Guid.TryParse(bookingIdStr, out var bookingId))
         {
             var command = new CompleteBookingCommand
             {

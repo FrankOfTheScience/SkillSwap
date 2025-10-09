@@ -10,21 +10,21 @@ public class BookingTests
     {
         // Arrange & Act
         var booking = new Booking();
-        
+
         // Assert
-        booking.Id.Should().Be(0);
+        booking.Id.Should().Be(Guid.Empty);
         booking.Status.Should().Be(BookingStatus.Pending);
         booking.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5)); // Increased tolerance
         booking.CompletedAt.Should().BeNull();
         booking.StripeCheckoutSessionId.Should().BeNull();
         booking.StripePaymentIntentId.Should().BeNull();
     }
-    
+
     [Fact]
     public void Booking_ShouldSetPropertiesCorrectly()
     {
         // Arrange
-        var offerId = 123;
+        var offerId = Guid.NewGuid();
         var userId = Guid.NewGuid();
         var status = BookingStatus.Completed;
         var amount = 150.75m;
@@ -32,7 +32,7 @@ public class BookingTests
         var stripeSessionId = "cs_12345";
         var stripePaymentIntentId = "pi_12345";
         var completedAt = DateTime.UtcNow;
-        
+
         // Act
         var booking = new Booking
         {
@@ -45,7 +45,7 @@ public class BookingTests
             StripePaymentIntentId = stripePaymentIntentId,
             CompletedAt = completedAt
         };
-        
+
         // Assert
         booking.OfferId.Should().Be(offerId);
         booking.UserId.Should().Be(userId);
@@ -56,31 +56,31 @@ public class BookingTests
         booking.StripePaymentIntentId.Should().Be(stripePaymentIntentId);
         booking.CompletedAt.Should().Be(completedAt);
     }
-    
+
     [Fact]
     public void Booking_NavigationProperties_ShouldBeNullByDefault()
     {
         // Arrange & Act
         var booking = new Booking();
-        
+
         // Assert
         booking.Offer.Should().BeNull();
         booking.User.Should().BeNull();
     }
-    
+
     [Fact]
     public void Booking_NavigationProperties_ShouldBeSettable()
     {
         // Arrange
         var offer = new Offer
         {
-            Id = 1,
+            Id = Guid.NewGuid(),
             Title = "Test Offer",
             Description = "Test Description",
             Price = 100m,
             CreatedBy = Guid.NewGuid()
         };
-        
+
         var user = new User
         {
             Id = Guid.NewGuid(),
@@ -88,18 +88,18 @@ public class BookingTests
             DisplayName = "Test User",
             PasswordHash = "hash123"
         };
-        
+
         var booking = new Booking();
-        
+
         // Act
         booking.Offer = offer;
         booking.User = user;
-        
+
         // Assert
         booking.Offer.Should().Be(offer);
         booking.User.Should().Be(user);
     }
-    
+
     [Theory]
     [InlineData(0)]
     [InlineData(50.99)]
@@ -109,11 +109,11 @@ public class BookingTests
     {
         // Arrange & Act
         var booking = new Booking { Amount = amount };
-        
+
         // Assert
         booking.Amount.Should().Be(amount);
     }
-    
+
     [Theory]
     [InlineData(0)]
     [InlineData(5.99)]
@@ -123,27 +123,27 @@ public class BookingTests
     {
         // Arrange & Act
         var booking = new Booking { CommissionAmount = commissionAmount };
-        
+
         // Assert
         booking.CommissionAmount.Should().Be(commissionAmount);
     }
-    
+
     [Fact]
     public void Booking_CreatedAt_ShouldBeUtcTime()
     {
         // Arrange
         var beforeCreation = DateTime.UtcNow;
-        
+
         // Act
         var booking = new Booking();
         var afterCreation = DateTime.UtcNow;
-        
+
         // Assert
         booking.CreatedAt.Should().BeAfter(beforeCreation.AddMilliseconds(-1));
         booking.CreatedAt.Should().BeBefore(afterCreation.AddMilliseconds(1));
         booking.CreatedAt.Kind.Should().Be(DateTimeKind.Utc);
     }
-    
+
     [Theory]
     [InlineData(BookingStatus.Pending)]
     [InlineData(BookingStatus.Completed)]
@@ -153,20 +153,23 @@ public class BookingTests
     {
         // Arrange & Act
         var booking = new Booking { Status = status };
-        
+
         // Assert
         booking.Status.Should().Be(status);
     }
-    
+
     [Fact]
     public void Booking_WithFullData_ShouldRetainAllProperties()
     {
         // Arrange
+        var bookingId = Guid.NewGuid();
+        var offerId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
         var booking = new Booking
         {
-            Id = 42,
-            OfferId = 100,
-            UserId = Guid.NewGuid(),
+            Id = bookingId,
+            OfferId = offerId,
+            UserId = userId,
             Status = BookingStatus.Completed,
             Amount = 250.00m,
             CommissionAmount = 25.00m,
@@ -174,11 +177,11 @@ public class BookingTests
             StripePaymentIntentId = "pi_test_intent",
             CompletedAt = DateTime.UtcNow.AddDays(-1)
         };
-        
+
         // Act & Assert - Verify all properties are maintained
-        booking.Id.Should().Be(42);
-        booking.OfferId.Should().Be(100);
-        booking.UserId.Should().NotBe(Guid.Empty);
+        booking.Id.Should().Be(bookingId);
+        booking.OfferId.Should().Be(offerId);
+        booking.UserId.Should().Be(userId);
         booking.Status.Should().Be(BookingStatus.Completed);
         booking.Amount.Should().Be(250.00m);
         booking.CommissionAmount.Should().Be(25.00m);

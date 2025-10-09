@@ -14,6 +14,11 @@ export default function EditOfferModal({ isOpen, onClose, offerId, onSuccess }: 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  const [durationInMinutes, setDurationInMinutes] = useState(60);
+  const [location, setLocation] = useState("");
+  const [isOnline, setIsOnline] = useState(true);
+  const [requirements, setRequirements] = useState("");
+  const [category, setCategory] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -24,6 +29,11 @@ export default function EditOfferModal({ isOpen, onClose, offerId, onSuccess }: 
       setTitle("");
       setDescription("");
       setPrice("");
+      setDurationInMinutes(60);
+      setLocation("");
+      setIsOnline(true);
+      setRequirements("");
+      setCategory("");
       setError("");
       setLoading(true);
       return;
@@ -36,6 +46,11 @@ export default function EditOfferModal({ isOpen, onClose, offerId, onSuccess }: 
         setTitle(offer.title);
         setDescription(offer.description);
         setPrice(offer.price.toString());
+        setDurationInMinutes(offer.durationInMinutes || 60);
+        setLocation(offer.location || "");
+        setIsOnline(offer.isOnline ?? true);
+        setRequirements(offer.requirements || "");
+        setCategory(offer.category || "");
       } catch (err: unknown) {
         console.error("Fetch offer error:", err);
         setError("Failed to load offer details");
@@ -74,7 +89,12 @@ export default function EditOfferModal({ isOpen, onClose, offerId, onSuccess }: 
       await api.put(`/api/offers/${offerId}`, {
         title,
         description,
-        price: numericPrice
+        price: numericPrice,
+        durationInMinutes,
+        location: location || null,
+        isOnline,
+        requirements: requirements || null,
+        category: category || null
       });
       
       if (onSuccess) {
@@ -178,6 +198,107 @@ export default function EditOfferModal({ isOpen, onClose, offerId, onSuccess }: 
               disabled={isSubmitting}
             />
             <p className="mt-1 text-sm text-gray-600">You can use either comma (25,00) or dot (25.00) as decimal separator</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="duration" className="block text-sm font-bold text-gray-800 mb-2">
+                Duration (minutes) *
+              </label>
+              <input
+                id="duration"
+                type="number"
+                min="15"
+                step="15"
+                value={durationInMinutes}
+                onChange={(e) => setDurationInMinutes(parseInt(e.target.value) || 60)}
+                className="w-full px-4 py-3 border-2 border-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white text-gray-900"
+                disabled={isSubmitting}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="category" className="block text-sm font-bold text-gray-800 mb-2">
+                Category
+              </label>
+              <select
+                id="category"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full px-4 py-3 border-2 border-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white text-gray-900"
+                disabled={isSubmitting}
+              >
+                <option value="">Select a category</option>
+                <option value="Technology">Technology</option>
+                <option value="Education">Education</option>
+                <option value="Business">Business</option>
+                <option value="Creative">Creative</option>
+                <option value="Health">Health</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-gray-800 mb-2">
+              Delivery Method *
+            </label>
+            <div className="space-y-2">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="isOnline"
+                  checked={isOnline}
+                  onChange={() => setIsOnline(true)}
+                  className="mr-2 text-blue-600"
+                  disabled={isSubmitting}
+                />
+                <span className="text-gray-700">Online</span>
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="isOnline"
+                  checked={!isOnline}
+                  onChange={() => setIsOnline(false)}
+                  className="mr-2 text-blue-600"
+                  disabled={isSubmitting}
+                />
+                <span className="text-gray-700">In-person</span>
+              </label>
+            </div>
+          </div>
+
+          {!isOnline && (
+            <div>
+              <label htmlFor="location" className="block text-sm font-bold text-gray-800 mb-2">
+                Location *
+              </label>
+              <input
+                id="location"
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="e.g., Downtown Office, Central Library, etc."
+                className="w-full px-4 py-3 border-2 border-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white text-gray-900 placeholder-gray-500"
+                disabled={isSubmitting}
+              />
+            </div>
+          )}
+
+          <div>
+            <label htmlFor="requirements" className="block text-sm font-bold text-gray-800 mb-2">
+              Requirements
+            </label>
+            <textarea
+              id="requirements"
+              value={requirements}
+              onChange={(e) => setRequirements(e.target.value)}
+              placeholder="Any prerequisites, materials needed, or preparation required..."
+              rows={3}
+              className="w-full px-4 py-3 border-2 border-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-vertical bg-white text-gray-900 placeholder-gray-500"
+              disabled={isSubmitting}
+            />
           </div>
 
           <div className="flex gap-4 pt-4">

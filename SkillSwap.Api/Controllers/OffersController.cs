@@ -31,8 +31,8 @@ public class OffersController : ControllerBase
     /// </summary>
     /// <param name="id">Offer ID</param>
     /// <returns>Offer details</returns>
-    [HttpGet("{id:int}")]
-    public async Task<IActionResult> GetById(int id)
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetById(Guid id)
     {
         try
         {
@@ -110,6 +110,10 @@ public class OffersController : ControllerBase
     {
         try
         {
+            // Debug user claims
+            var userClaims = User.Claims.Select(c => new { c.Type, c.Value }).ToList();
+            _logger.LogInformation("User claims: {@Claims}", userClaims);
+            
             var userId = User.FindFirstValue(JwtRegisteredClaimNames.Sub) 
                 ?? User.FindFirstValue("sub") 
                 ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -120,7 +124,17 @@ public class OffersController : ControllerBase
                 return BadRequest(new { Error = "User ID not found in token" });
             }
 
-            var cmd = new CreateOfferCommand(dto.Title, dto.Description, dto.Price, Guid.Parse(userId));
+            var cmd = new CreateOfferCommand(
+                dto.Title, 
+                dto.Description, 
+                dto.Price, 
+                Guid.Parse(userId),
+                dto.DurationInMinutes,
+                dto.Location,
+                dto.IsOnline,
+                dto.Requirements,
+                dto.Category
+            );
 
             var validationResult = await validator.ValidateAsync(cmd);
             if (!validationResult.IsValid)
@@ -145,10 +159,10 @@ public class OffersController : ControllerBase
     /// <param name="dto">Updated offer details</param>
     /// <param name="validator">Command validator</param>
     /// <returns>Updated offer</returns>
-    [HttpPut("{id:int}")]
+    [HttpPut("{id:guid}")]
     [Authorize(Roles = "User,Admin")]
     public async Task<IActionResult> Update(
-        int id, 
+        Guid id, 
         [FromBody] UpdateOfferDto dto, 
         [FromServices] IValidator<UpdateOfferCommand> validator)
     {
@@ -163,7 +177,18 @@ public class OffersController : ControllerBase
                 return BadRequest(new { Error = "User ID not found in token" });
             }
 
-            var cmd = new UpdateOfferCommand(id, dto.Title, dto.Description, dto.Price, Guid.Parse(userId));
+            var cmd = new UpdateOfferCommand(
+                id, 
+                dto.Title, 
+                dto.Description, 
+                dto.Price, 
+                Guid.Parse(userId),
+                dto.DurationInMinutes,
+                dto.Location,
+                dto.IsOnline,
+                dto.Requirements,
+                dto.Category
+            );
 
             var validationResult = await validator.ValidateAsync(cmd);
             if (!validationResult.IsValid)
@@ -186,9 +211,9 @@ public class OffersController : ControllerBase
     /// </summary>
     /// <param name="id">Offer ID</param>
     /// <returns>No content on success</returns>
-    [HttpDelete("{id:int}")]
+    [HttpDelete("{id:guid}")]
     [Authorize(Roles = "User,Admin")]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(Guid id)
     {
         try
         {

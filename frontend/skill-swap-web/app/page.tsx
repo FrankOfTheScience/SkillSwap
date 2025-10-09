@@ -11,8 +11,10 @@ import ViewOfferModal from "../components/ViewOfferModal";
 import EditOfferModal from "../components/EditOfferModal";
 import BookingSuccessModal from "../components/BookingSuccessModal";
 import BookingConfirmModal from "../components/BookingConfirmModal";
+import DeleteConfirmModal from "../components/DeleteConfirmModal";
 import ProfileCard from "../components/ProfileCard";
-import { User, Offer } from "../types";
+import { User, Offer, Booking } from "../types";
+import { cancelBooking } from "../services/booking";
 
 function HomePage() {
   const router = useRouter();
@@ -29,9 +31,16 @@ function HomePage() {
   const [showEditOfferModal, setShowEditOfferModal] = useState(false);
   const [showBookingSuccessModal, setShowBookingSuccessModal] = useState(false);
   const [showBookingConfirmModal, setShowBookingConfirmModal] = useState(false);
+  
+  // Cancel booking modal state
+  const [cancelConfirmModal, setCancelConfirmModal] = useState<{ booking: Booking; isOpen: boolean }>({ 
+    booking: {} as Booking, 
+    isOpen: false 
+  });
   const [selectedOfferId, setSelectedOfferId] = useState<number | null>(null);
   const [cameFromMyBookings, setCameFromMyBookings] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     const currentUser = getCurrentUser();
@@ -122,7 +131,8 @@ function HomePage() {
   };
 
   const handleEditOfferSuccess = () => {
-    // Refresh the offer list or update the offer
+    // Refresh the offer list by incrementing the trigger
+    setRefreshTrigger(prev => prev + 1);
     setShowEditOfferModal(false);
     setSelectedOfferId(null);
   };
@@ -143,16 +153,44 @@ function HomePage() {
     setCameFromMyBookings(false);
   };
 
+  const handleCancelBooking = async (bookingId: number) => {
+    // For now, we need to find the booking by ID
+    // In a real app, you might want to pass more data or fetch the booking details
+    const mockBooking = { 
+      id: bookingId, 
+      offer: { title: 'Selected Booking' } 
+    } as Booking;
+    
+    setCancelConfirmModal({ booking: mockBooking, isOpen: true })
+    setShowMyBookingsModal(false)
+  };
+
+  const confirmCancelBooking = async () => {
+    try {
+      await cancelBooking(cancelConfirmModal.booking.id)
+      setCancelConfirmModal({ booking: {} as Booking, isOpen: false })
+      // You might want to refresh bookings or show a success message here
+    } catch (err) {
+      console.error('Failed to cancel booking:', err)
+      setCancelConfirmModal({ booking: {} as Booking, isOpen: false })
+    }
+  };
+
+  const closeCancelConfirm = () => {
+    setCancelConfirmModal({ booking: {} as Booking, isOpen: false })
+    setShowMyBookingsModal(true) // Return to bookings modal
+  };
+
   if (loading) {
     return (
-      <main className="p-8">
-        <div className="text-center">Loading...</div>
+      <main className="min-h-screen bg-black p-8">
+        <div className="text-center text-white">Loading...</div>
       </main>
     );
   }
 
   return (
-    <main className="p-8">
+    <main className="min-h-screen bg-black p-8">
       {/* Authentication Section */}
       <div className="mb-8 p-6 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-xl border border-blue-100 shadow-lg">
         {user ? (
@@ -177,6 +215,12 @@ function HomePage() {
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+              <button
+                onClick={() => router.push('/profile')}
+                className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-6 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 shadow-md text-center whitespace-nowrap"
+              >
+                👤 Profile
+              </button>
               <button
                 onClick={() => setShowMyBookingsModal(true)}
                 className="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 shadow-md text-center whitespace-nowrap"
@@ -249,7 +293,12 @@ function HomePage() {
         )}
         
         <h1 className="text-3xl font-bold mb-6">Available Offers</h1>
-        <OfferList user={user} onViewOffer={handleViewOffer} />
+        <OfferList 
+          user={user} 
+          onViewOffer={handleViewOffer} 
+          onEditOffer={handleEditOffer} 
+          refreshTrigger={refreshTrigger}
+        />
       </div>
 
       {/* Modals */}
@@ -279,6 +328,7 @@ function HomePage() {
         isOpen={showMyBookingsModal}
         onClose={() => setShowMyBookingsModal(false)}
         onViewOffer={handleViewOffer}
+        onCancelBooking={handleCancelBooking}
       />
 
       <ViewOfferModal
@@ -311,6 +361,17 @@ function HomePage() {
           user={user}
         />
       )}
+
+      <DeleteConfirmModal
+        isOpen={cancelConfirmModal.isOpen}
+        onClose={closeCancelConfirm}
+        onConfirm={confirmCancelBooking}
+        title="Cancel Booking"
+        message={cancelConfirmModal.booking?.offer?.title ? 
+          `Are you sure you want to cancel your booking for "${cancelConfirmModal.booking.offer.title}"? This action cannot be undone.` :
+          "Are you sure you want to cancel this booking?"
+        }
+      />
     </main>
   );
 }

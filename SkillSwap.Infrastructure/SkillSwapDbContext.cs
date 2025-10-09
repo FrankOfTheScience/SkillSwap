@@ -37,11 +37,6 @@ public class SkillSwapDbContext : DbContext, IApplicationDbContext
         // Configure Offer entity
         modelBuilder.Entity<Offer>(entity =>
         {
-            entity.Property(e => e.Id)
-                .UseIdentityByDefaultColumn()
-                .HasAnnotation("Npgsql:ValueGenerationStrategy", 
-                    Npgsql.EntityFrameworkCore.PostgreSQL.Metadata.NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
-                    
             entity.Property(e => e.Price)
                 .HasColumnType("decimal(18,2)");
                 
@@ -72,10 +67,7 @@ public class SkillSwapDbContext : DbContext, IApplicationDbContext
         // Configure OfferAvailability entity
         modelBuilder.Entity<OfferAvailability>(entity =>
         {
-            entity.Property(e => e.Id)
-                .UseIdentityByDefaultColumn()
-                .HasAnnotation("Npgsql:ValueGenerationStrategy", 
-                    Npgsql.EntityFrameworkCore.PostgreSQL.Metadata.NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+            // GUIDs don't need identity column configuration
         });
         
         // Configure Booking entity

@@ -19,7 +19,7 @@ public class StripeService : IStripeService
     }
 
     public async Task<string> CreateCheckoutSessionAsync(
-        int bookingId,
+        Guid bookingId,
         decimal amount,
         decimal commissionAmount,
         string successUrl,

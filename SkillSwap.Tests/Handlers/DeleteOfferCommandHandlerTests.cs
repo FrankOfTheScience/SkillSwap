@@ -93,7 +93,7 @@ public class DeleteOfferHandlerTests
 
         var handler = new DeleteOfferCommandHandler(ctx, accessor);
 
-        var result = await handler.Handle(new DeleteOfferCommand(999), CancellationToken.None);
+        var result = await handler.Handle(new DeleteOfferCommand(Guid.NewGuid()), CancellationToken.None);
 
         result.Should().BeFalse();
     }

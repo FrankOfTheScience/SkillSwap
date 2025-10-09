@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SkillSwap.Api.Services;
 using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace SkillSwap.Api.Controllers;
 
@@ -30,7 +31,9 @@ public class DashboardController : ControllerBase
     {
         try
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                ?? User.FindFirst("sub")?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (!Guid.TryParse(userIdClaim, out var userId))
             {
                 return Unauthorized("Invalid user ID in token");
@@ -79,7 +82,9 @@ public class DashboardController : ControllerBase
     {
         try
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                ?? User.FindFirst("sub")?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (!Guid.TryParse(userIdClaim, out var userId))
             {
                 return Unauthorized("Invalid user ID in token");

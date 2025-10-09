@@ -63,11 +63,11 @@ public class GetOffersQueryHandler : IRequestHandler<GetOffersQuery, PagedOffers
                 ? query.OrderByDescending(o => o.Price) 
                 : query.OrderBy(o => o.Price),
             "createdat" or "created" => request.SortDescending 
-                ? query.OrderByDescending(o => o.Id) 
-                : query.OrderBy(o => o.Id),
+                ? query.OrderByDescending(o => o.CreatedAt) 
+                : query.OrderBy(o => o.CreatedAt),
             _ => request.SortDescending 
-                ? query.OrderByDescending(o => o.Id) 
-                : query.OrderBy(o => o.Id)
+                ? query.OrderByDescending(o => o.CreatedAt) 
+                : query.OrderBy(o => o.CreatedAt)
         };
 
         // Get total count before pagination

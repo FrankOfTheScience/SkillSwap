@@ -6,7 +6,7 @@ public class UpdateOfferCommandValidator : AbstractValidator<UpdateOfferCommand>
 {
     public UpdateOfferCommandValidator()
     {
-        RuleFor(x => x.Id).GreaterThan(0);
+        RuleFor(x => x.Id).NotEmpty().WithMessage("Offer ID is required");
 
         RuleFor(x => x.Title)
             .NotEmpty().WithMessage("Title is mandatory")

@@ -5,7 +5,7 @@ namespace SkillSwap.Api.Dtos;
 [ExcludeFromCodeCoverage]
 public class CreateCheckoutSessionRequest
 {
-    public int OfferId { get; set; }
+    public Guid OfferId { get; set; }
     public Guid UserId { get; set; }
     public DateTime? ScheduledDateTime { get; set; }
     public int? DurationInMinutes { get; set; }
@@ -18,5 +18,5 @@ public class CreateCheckoutSessionRequest
 public class CreateCheckoutSessionResponse
 {
     public string CheckoutUrl { get; set; } = string.Empty;
-    public int BookingId { get; set; }
+    public Guid BookingId { get; set; }
 }

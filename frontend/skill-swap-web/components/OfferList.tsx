@@ -12,6 +12,8 @@ import Toast, { useToast } from "./Toast";
 interface OfferListProps {
   user: User | null;
   onViewOffer?: (offerId: number) => void;
+  onEditOffer?: (offerId: number) => void;
+  refreshTrigger?: number; // Add a refresh trigger prop
 }
 
 interface PagedOffersResult {
@@ -39,7 +41,7 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
-export default function OfferList({ user, onViewOffer }: OfferListProps) {
+export default function OfferList({ user, onViewOffer, onEditOffer, refreshTrigger }: OfferListProps) {
   const [offersResult, setOffersResult] = useState<PagedOffersResult>({
     offers: [],
     totalCount: 0,
@@ -106,6 +108,13 @@ export default function OfferList({ user, onViewOffer }: OfferListProps) {
     const isRefresh = offersResult.offers.length > 0; // Determine if this is a refresh
     loadOffers(isRefresh);
   }, [loadOffers, offersResult.offers.length]);
+
+  // Listen for refresh trigger changes
+  useEffect(() => {
+    if (refreshTrigger && refreshTrigger > 0) {
+      loadOffers(true); // Force refresh when trigger changes
+    }
+  }, [refreshTrigger, loadOffers]);
 
   const handleSearchSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -401,12 +410,12 @@ export default function OfferList({ user, onViewOffer }: OfferListProps) {
                     <div className="flex gap-3">
                       {user && (isOwner(offer) || isAdmin()) ? (
                         <>
-                          <Link
-                            href={`/offers/${offer.id}/edit`}
+                          <button
+                            onClick={() => onEditOffer?.(offer.id)}
                             className="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-md flex items-center gap-2"
                           >
                             ✏️ Edit
-                          </Link>
+                          </button>
                           <button
                             onClick={() => handleDeleteClick(offer)}
                             className="bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-md flex items-center gap-2"

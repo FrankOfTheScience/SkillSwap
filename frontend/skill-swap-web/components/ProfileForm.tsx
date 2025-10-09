@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { User } from '../types'
 import { updateProfile, uploadProfileImage, UpdateProfileRequest } from '../services/profile'
@@ -12,6 +13,7 @@ interface ProfileFormProps {
 }
 
 export default function ProfileForm({ profile, onProfileUpdate }: ProfileFormProps) {
+  const router = useRouter();
   const [formData, setFormData] = useState<UpdateProfileRequest>({
     firstName: profile?.firstName || '',
     lastName: profile?.lastName || '',
@@ -32,7 +34,7 @@ export default function ProfileForm({ profile, onProfileUpdate }: ProfileFormPro
   
   const [loading, setLoading] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null)
   const [newSkill, setNewSkill] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -86,13 +88,12 @@ export default function ProfileForm({ profile, onProfileUpdate }: ProfileFormPro
       setUploadingImage(true)
       const response = await uploadProfileImage(file)
       
-      // Update the profile with new image URL
-      const updatedProfile = await updateProfile({
-        ...formData
-      })
-      
-      onProfileUpdate(updatedProfile)
+      // Image upload successful - the profile image URL is updated on the backend
+      // No need to call updateProfile again
       setToast({ message: response.message, type: 'success' })
+      
+      // Optionally refresh the profile data to get the new image URL
+      // onProfileUpdate could be called here if needed
     } catch (error) {
       setToast({ 
         message: error instanceof Error ? error.message : 'Failed to upload image', 
@@ -106,11 +107,49 @@ export default function ProfileForm({ profile, onProfileUpdate }: ProfileFormPro
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    // Check if anything has actually changed (more lenient check)
+    const hasChanges = (
+      (formData.firstName || '') !== (profile?.firstName || '') ||
+      (formData.lastName || '') !== (profile?.lastName || '') ||
+      (formData.phoneNumber || '') !== (profile?.phoneNumber || '') ||
+      (formData.bio || '') !== (profile?.bio || '') ||
+      (formData.city || '') !== (profile?.city || '') ||
+      (formData.country || '') !== (profile?.country || '') ||
+      (formData.profession || '') !== (profile?.profession || '') ||
+      (formData.company || '') !== (profile?.company || '') ||
+      JSON.stringify((formData.skills || []).sort()) !== JSON.stringify((profile?.skills || []).sort())
+    )
+
     try {
       setLoading(true)
-      const updatedProfile = await updateProfile(formData)
+      
+      // Validate form data before sending
+      const validatedData = {
+        firstName: formData.firstName?.trim().substring(0, 50) || undefined,
+        lastName: formData.lastName?.trim().substring(0, 50) || undefined,
+        bio: formData.bio?.trim().substring(0, 1000) || undefined,
+        phoneNumber: formData.phoneNumber?.trim() || undefined,
+        dateOfBirth: formData.dateOfBirth || undefined,
+        city: formData.city?.trim().substring(0, 100) || undefined,
+        country: formData.country?.trim().substring(0, 100) || undefined,
+        profession: formData.profession?.trim().substring(0, 200) || undefined,
+        company: formData.company?.trim().substring(0, 200) || undefined,
+        yearsOfExperience: Math.min(Math.max(formData.yearsOfExperience || 0, 0), 100),
+        skills: formData.skills || [],
+        preferredLanguage: formData.preferredLanguage?.substring(0, 10) || 'en',
+        timeZone: formData.timeZone?.substring(0, 100) || undefined,
+        emailNotifications: formData.emailNotifications,
+        pushNotifications: formData.pushNotifications
+      }
+      
+      const updatedProfile = await updateProfile(validatedData)
       onProfileUpdate(updatedProfile)
       setToast({ message: 'Profile updated successfully!', type: 'success' })
+      
+      // Navigate back to dashboard after successful save
+      setTimeout(() => {
+        router.push('/profile')
+      }, 1500)
     } catch (error) {
       setToast({ 
         message: error instanceof Error ? error.message : 'Failed to update profile', 
@@ -122,11 +161,11 @@ export default function ProfileForm({ profile, onProfileUpdate }: ProfileFormPro
   }
 
   return (
-    <div className="bg-white rounded-lg shadow">
+    <div className="bg-white rounded-lg shadow-xl border border-gray-200">
       <form onSubmit={handleSubmit} className="p-6 space-y-6">
         {/* Profile Image Section */}
         <div className="border-b border-gray-200 pb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Profile Picture</h3>
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Profile Picture</h3>
           <div className="flex items-center space-x-6">
             <div className="relative">
               <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200">
@@ -175,7 +214,7 @@ export default function ProfileForm({ profile, onProfileUpdate }: ProfileFormPro
 
         {/* Personal Information */}
         <div className="border-b border-gray-200 pb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Personal Information</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -186,7 +225,7 @@ export default function ProfileForm({ profile, onProfileUpdate }: ProfileFormPro
                 name="firstName"
                 value={formData.firstName}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 bg-white text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -198,7 +237,7 @@ export default function ProfileForm({ profile, onProfileUpdate }: ProfileFormPro
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 bg-white text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -210,7 +249,7 @@ export default function ProfileForm({ profile, onProfileUpdate }: ProfileFormPro
                 name="phoneNumber"
                 value={formData.phoneNumber}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 bg-white text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -222,7 +261,7 @@ export default function ProfileForm({ profile, onProfileUpdate }: ProfileFormPro
                 name="dateOfBirth"
                 value={formData.dateOfBirth}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 bg-white text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -234,7 +273,7 @@ export default function ProfileForm({ profile, onProfileUpdate }: ProfileFormPro
                 name="city"
                 value={formData.city}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 bg-white text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -246,7 +285,7 @@ export default function ProfileForm({ profile, onProfileUpdate }: ProfileFormPro
                 name="country"
                 value={formData.country}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 bg-white text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -259,7 +298,7 @@ export default function ProfileForm({ profile, onProfileUpdate }: ProfileFormPro
               value={formData.bio}
               onChange={handleInputChange}
               rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 bg-white text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Tell us about yourself..."
             />
           </div>
@@ -267,7 +306,7 @@ export default function ProfileForm({ profile, onProfileUpdate }: ProfileFormPro
 
         {/* Professional Information */}
         <div className="border-b border-gray-200 pb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Professional Information</h3>
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Professional Information</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -278,7 +317,7 @@ export default function ProfileForm({ profile, onProfileUpdate }: ProfileFormPro
                 name="profession"
                 value={formData.profession}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 bg-white text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -290,7 +329,7 @@ export default function ProfileForm({ profile, onProfileUpdate }: ProfileFormPro
                 name="company"
                 value={formData.company}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 bg-white text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
@@ -304,7 +343,7 @@ export default function ProfileForm({ profile, onProfileUpdate }: ProfileFormPro
                 onChange={handleInputChange}
                 min="0"
                 max="50"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 bg-white text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -338,7 +377,7 @@ export default function ProfileForm({ profile, onProfileUpdate }: ProfileFormPro
                 onChange={(e) => setNewSkill(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddSkill())}
                 placeholder="Add a skill"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-3 py-2 border border-gray-300 bg-white text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <button
                 type="button"
@@ -353,7 +392,7 @@ export default function ProfileForm({ profile, onProfileUpdate }: ProfileFormPro
 
         {/* Preferences */}
         <div className="border-b border-gray-200 pb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Preferences</h3>
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Preferences</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -363,7 +402,7 @@ export default function ProfileForm({ profile, onProfileUpdate }: ProfileFormPro
                 name="preferredLanguage"
                 value={formData.preferredLanguage}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 bg-white text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="en">English</option>
                 <option value="es">Spanish</option>
@@ -376,14 +415,34 @@ export default function ProfileForm({ profile, onProfileUpdate }: ProfileFormPro
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Time Zone
               </label>
-              <input
-                type="text"
+              <select
                 name="timeZone"
                 value={formData.timeZone}
                 onChange={handleInputChange}
-                placeholder="e.g., UTC, EST, PST"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+                className="w-full px-3 py-2 border border-gray-300 bg-white text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Select a timezone...</option>
+                <option value="UTC">UTC (Coordinated Universal Time)</option>
+                <option value="America/New_York">EST/EDT (Eastern Time)</option>
+                <option value="America/Chicago">CST/CDT (Central Time)</option>
+                <option value="America/Denver">MST/MDT (Mountain Time)</option>
+                <option value="America/Los_Angeles">PST/PDT (Pacific Time)</option>
+                <option value="Europe/London">GMT/BST (London)</option>
+                <option value="Europe/Paris">CET/CEST (Central European)</option>
+                <option value="Europe/Rome">CET/CEST (Rome)</option>
+                <option value="Europe/Berlin">CET/CEST (Berlin)</option>
+                <option value="Europe/Madrid">CET/CEST (Madrid)</option>
+                <option value="Asia/Tokyo">JST (Japan Standard Time)</option>
+                <option value="Asia/Shanghai">CST (China Standard Time)</option>
+                <option value="Asia/Kolkata">IST (India Standard Time)</option>
+                <option value="Australia/Sydney">AEST/AEDT (Sydney)</option>
+                <option value="America/Toronto">EST/EDT (Toronto)</option>
+                <option value="America/Vancouver">PST/PDT (Vancouver)</option>
+                <option value="Asia/Dubai">GST (Gulf Standard Time)</option>
+                <option value="Europe/Moscow">MSK (Moscow Standard Time)</option>
+                <option value="Africa/Cairo">EET (Eastern European Time)</option>
+                <option value="Pacific/Auckland">NZST/NZDT (New Zealand)</option>
+              </select>
             </div>
           </div>
 
@@ -416,13 +475,20 @@ export default function ProfileForm({ profile, onProfileUpdate }: ProfileFormPro
         </div>
 
         {/* Submit Button */}
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => router.push('/profile')}
+            className="bg-gray-500 hover:bg-gray-600 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-200"
+          >
+            Cancel
+          </button>
           <button
             type="submit"
             disabled={loading}
-            className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 disabled:opacity-50 font-medium"
+            className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 disabled:from-gray-400 disabled:to-gray-500 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg disabled:shadow-none disabled:transform-none"
           >
-            {loading ? 'Saving...' : 'Save Changes'}
+            {loading ? 'Saving...' : '💾 Save Changes'}
           </button>
         </div>
       </form>

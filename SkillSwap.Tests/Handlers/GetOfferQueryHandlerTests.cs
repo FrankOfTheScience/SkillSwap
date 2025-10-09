@@ -15,8 +15,8 @@ public class GetOfferQueryHandlerTests
         var userId1 = Guid.NewGuid();
         var userId2 = Guid.NewGuid();
         
-        ctx.Offers.AddRange(new Offer { Title = "a", Description = "d", Price = 1, CreatedBy = userId1 },
-                            new Offer { Title = "b", Description = "d2", Price = 2, CreatedBy = userId2 });
+        ctx.Offers.AddRange(new Offer { Id = Guid.NewGuid(), Title = "a", Description = "d", Price = 1, CreatedBy = userId1 },
+                            new Offer { Id = Guid.NewGuid(), Title = "b", Description = "d2", Price = 2, CreatedBy = userId2 });
         await ctx.SaveChangesAsync();
 
         var dbSub = Substitute.For<IApplicationDbContext>();
@@ -51,9 +51,9 @@ public class GetOfferQueryHandlerTests
         var userId = Guid.NewGuid();
         
         ctx.Offers.AddRange(
-            new Offer { Title = "Guitar Lessons", Description = "Learn to play guitar", Price = 50, CreatedBy = userId },
-            new Offer { Title = "Piano Tutorials", Description = "Piano for beginners", Price = 40, CreatedBy = userId },
-            new Offer { Title = "Math Tutoring", Description = "Advanced mathematics help", Price = 60, CreatedBy = userId }
+            new Offer { Id = Guid.NewGuid(), Title = "Guitar Lessons", Description = "Learn to play guitar", Price = 50, CreatedBy = userId },
+            new Offer { Id = Guid.NewGuid(), Title = "Piano Tutorials", Description = "Piano for beginners", Price = 40, CreatedBy = userId },
+            new Offer { Id = Guid.NewGuid(), Title = "Math Tutoring", Description = "Advanced mathematics help", Price = 60, CreatedBy = userId }
         );
         await ctx.SaveChangesAsync();
 
@@ -80,9 +80,9 @@ public class GetOfferQueryHandlerTests
         var userId = Guid.NewGuid();
         
         ctx.Offers.AddRange(
-            new Offer { Title = "Cheap Service", Description = "Budget option", Price = 25, CreatedBy = userId },
-            new Offer { Title = "Premium Service", Description = "High quality", Price = 100, CreatedBy = userId },
-            new Offer { Title = "Mid-range Service", Description = "Good value", Price = 50, CreatedBy = userId }
+            new Offer { Id = Guid.NewGuid(), Title = "Cheap Service", Description = "Budget option", Price = 25, CreatedBy = userId },
+            new Offer { Id = Guid.NewGuid(), Title = "Premium Service", Description = "High quality", Price = 100, CreatedBy = userId },
+            new Offer { Id = Guid.NewGuid(), Title = "Mid-range Service", Description = "Good value", Price = 50, CreatedBy = userId }
         );
         await ctx.SaveChangesAsync();
 
@@ -110,9 +110,9 @@ public class GetOfferQueryHandlerTests
         var userId2 = Guid.NewGuid();
         
         ctx.Offers.AddRange(
-            new Offer { Title = "My Offer 1", Description = "User 1 offer", Price = 50, CreatedBy = userId1 },
-            new Offer { Title = "My Offer 2", Description = "User 1 offer 2", Price = 40, CreatedBy = userId1 },
-            new Offer { Title = "Other Offer", Description = "User 2 offer", Price = 60, CreatedBy = userId2 }
+            new Offer { Id = Guid.NewGuid(), Title = "My Offer 1", Description = "User 1 offer", Price = 50, CreatedBy = userId1 },
+            new Offer { Id = Guid.NewGuid(), Title = "My Offer 2", Description = "User 1 offer 2", Price = 40, CreatedBy = userId1 },
+            new Offer { Id = Guid.NewGuid(), Title = "Other Offer", Description = "User 2 offer", Price = 60, CreatedBy = userId2 }
         );
         await ctx.SaveChangesAsync();
 
@@ -140,9 +140,9 @@ public class GetOfferQueryHandlerTests
         var userId2 = Guid.NewGuid();
         
         ctx.Offers.AddRange(
-            new Offer { Title = "My Offer", Description = "User 1 offer", Price = 50, CreatedBy = userId1 },
-            new Offer { Title = "Other Offer 1", Description = "User 2 offer 1", Price = 40, CreatedBy = userId2 },
-            new Offer { Title = "Other Offer 2", Description = "User 2 offer 2", Price = 60, CreatedBy = userId2 }
+            new Offer { Id = Guid.NewGuid(), Title = "My Offer", Description = "User 1 offer", Price = 50, CreatedBy = userId1 },
+            new Offer { Id = Guid.NewGuid(), Title = "Other Offer 1", Description = "User 2 offer 1", Price = 40, CreatedBy = userId2 },
+            new Offer { Id = Guid.NewGuid(), Title = "Other Offer 2", Description = "User 2 offer 2", Price = 60, CreatedBy = userId2 }
         );
         await ctx.SaveChangesAsync();
 
@@ -177,11 +177,12 @@ public class GetOfferQueryHandlerTests
         var userId = Guid.NewGuid();
         
         // Add offers in specific order to test sorting
+        var baseDate = DateTime.UtcNow.AddDays(-3); // Ensure chronological order
         var offers = new[]
         {
-            new Offer { Title = "Guitar Lessons", Description = "Learn guitar", Price = 60, CreatedBy = userId }, // ID 1
-            new Offer { Title = "Piano Tutorials", Description = "Learn piano", Price = 80, CreatedBy = userId }, // ID 2  
-            new Offer { Title = "Math Tutoring", Description = "Learn math", Price = 40, CreatedBy = userId }    // ID 3
+            new Offer { Id = Guid.NewGuid(), Title = "Guitar Lessons", Description = "Learn guitar", Price = 60, CreatedBy = userId, CreatedAt = baseDate.AddHours(0) }, // First created
+            new Offer { Id = Guid.NewGuid(), Title = "Piano Tutorials", Description = "Learn piano", Price = 80, CreatedBy = userId, CreatedAt = baseDate.AddHours(1) }, // Second created  
+            new Offer { Id = Guid.NewGuid(), Title = "Math Tutoring", Description = "Learn math", Price = 40, CreatedBy = userId, CreatedAt = baseDate.AddHours(2) }    // Third created
         };
         
         ctx.Offers.AddRange(offers);
@@ -210,7 +211,7 @@ public class GetOfferQueryHandlerTests
         
         // Create 15 offers for pagination testing
         var offers = Enumerable.Range(1, 15)
-            .Select(i => new Offer { Title = $"Offer {i}", Description = $"Description {i}", Price = i * 10, CreatedBy = userId })
+            .Select(i => new Offer { Id = Guid.NewGuid(), Title = $"Offer {i}", Description = $"Description {i}", Price = i * 10, CreatedBy = userId })
             .ToArray();
         
         ctx.Offers.AddRange(offers);
@@ -242,10 +243,10 @@ public class GetOfferQueryHandlerTests
         var userId2 = Guid.NewGuid();
         
         ctx.Offers.AddRange(
-            new Offer { Title = "Guitar Lessons", Description = "Learn guitar basics", Price = 50, CreatedBy = userId1 },
-            new Offer { Title = "Advanced Guitar", Description = "Advanced techniques", Price = 100, CreatedBy = userId1 },
-            new Offer { Title = "Piano Lessons", Description = "Learn piano", Price = 40, CreatedBy = userId2 },
-            new Offer { Title = "Guitar Repair", Description = "Fix your guitar", Price = 30, CreatedBy = userId2 }
+            new Offer { Id = Guid.NewGuid(), Title = "Guitar Lessons", Description = "Learn guitar basics", Price = 50, CreatedBy = userId1 },
+            new Offer { Id = Guid.NewGuid(), Title = "Advanced Guitar", Description = "Advanced techniques", Price = 100, CreatedBy = userId1 },
+            new Offer { Id = Guid.NewGuid(), Title = "Piano Lessons", Description = "Learn piano", Price = 40, CreatedBy = userId2 },
+            new Offer { Id = Guid.NewGuid(), Title = "Guitar Repair", Description = "Fix your guitar", Price = 30, CreatedBy = userId2 }
         );
         await ctx.SaveChangesAsync();
 
@@ -279,8 +280,8 @@ public class GetOfferQueryHandlerTests
         var userId = Guid.NewGuid();
         
         ctx.Offers.AddRange(
-            new Offer { Title = "Offer 1", Description = "Description 1", Price = 50, CreatedBy = userId },
-            new Offer { Title = "Offer 2", Description = "Description 2", Price = 40, CreatedBy = userId }
+            new Offer { Id = Guid.NewGuid(), Title = "Offer 1", Description = "Description 1", Price = 50, CreatedBy = userId },
+            new Offer { Id = Guid.NewGuid(), Title = "Offer 2", Description = "Description 2", Price = 40, CreatedBy = userId }
         );
         await ctx.SaveChangesAsync();
 
@@ -307,8 +308,8 @@ public class GetOfferQueryHandlerTests
         var userId2 = Guid.NewGuid();
         
         ctx.Offers.AddRange(
-            new Offer { Title = "Offer 1", Description = "Description 1", Price = 50, CreatedBy = userId1 },
-            new Offer { Title = "Offer 2", Description = "Description 2", Price = 40, CreatedBy = userId2 }
+            new Offer { Id = Guid.NewGuid(), Title = "Offer 1", Description = "Description 1", Price = 50, CreatedBy = userId1 },
+            new Offer { Id = Guid.NewGuid(), Title = "Offer 2", Description = "Description 2", Price = 40, CreatedBy = userId2 }
         );
         await ctx.SaveChangesAsync();
 

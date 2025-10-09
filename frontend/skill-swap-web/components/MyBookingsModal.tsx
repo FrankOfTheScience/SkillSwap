@@ -5,22 +5,21 @@ import { getUserBookings, cancelBooking } from "../services/booking";
 import { Booking, User, BookingStatus } from "../types";
 import BookingCard from "./BookingCard";
 import ModalWrapper from "./ModalWrapper";
-import DeleteConfirmModal from "./DeleteConfirmModal";
 
 interface MyBookingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onViewOffer?: (offerId: number) => void;
+  onCancelBooking?: (bookingId: number) => void;
 }
 
-export default function MyBookingsModal({ isOpen, onClose, onViewOffer }: MyBookingsModalProps) {
+export default function MyBookingsModal({ isOpen, onClose, onViewOffer, onCancelBooking }: MyBookingsModalProps) {
   const [user, setUser] = useState<User | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [cancelModal, setCancelModal] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<BookingStatus | null>(null);
 
   useEffect(() => {
@@ -54,25 +53,6 @@ export default function MyBookingsModal({ isOpen, onClose, onViewOffer }: MyBook
 
     fetchBookings();
   }, [user, page, isOpen]);
-
-  const handleCancelBooking = async (bookingId: number) => {
-    try {
-      await cancelBooking(bookingId);
-      
-      // Update the booking status in the local state
-      setBookings(prev => 
-        prev.map(booking => 
-          booking.id === bookingId 
-            ? { ...booking, status: BookingStatus.Cancelled }
-            : booking
-        )
-      );
-      
-      setCancelModal(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to cancel booking");
-    }
-  };
 
   const getBookingStats = () => {
     const stats = {
@@ -115,7 +95,6 @@ export default function MyBookingsModal({ isOpen, onClose, onViewOffer }: MyBook
 
   const stats = getBookingStats();
   const filteredBookings = getFilteredBookings();
-  const bookingToCancel = bookings.find(b => b.id === cancelModal);
 
   return (
     <ModalWrapper title="My Bookings" isOpen={isOpen} onClose={onClose}>
@@ -210,7 +189,7 @@ export default function MyBookingsModal({ isOpen, onClose, onViewOffer }: MyBook
               <BookingCard
                 key={booking.id}
                 booking={booking}
-                onCancel={(bookingId) => setCancelModal(bookingId)}
+                onCancel={onCancelBooking}
                 showActions={true}
                 onViewOffer={onViewOffer}
               />
@@ -241,18 +220,6 @@ export default function MyBookingsModal({ isOpen, onClose, onViewOffer }: MyBook
           </div>
         )}
       </div>
-
-      {/* Cancel Confirmation Modal */}
-      <DeleteConfirmModal
-        isOpen={cancelModal !== null}
-        onClose={() => setCancelModal(null)}
-        onConfirm={() => cancelModal && handleCancelBooking(cancelModal)}
-        title="Cancel Booking"
-        message={bookingToCancel ? 
-          `Are you sure you want to cancel your booking for "${bookingToCancel.offer?.title}"? This action cannot be undone.` :
-          "Are you sure you want to cancel this booking?"
-        }
-      />
     </ModalWrapper>
   );
 }

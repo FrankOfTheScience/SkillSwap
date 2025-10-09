@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using SkillSwap.Infrastructure;
 using SkillSwap.Domain;
 using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace SkillSwap.Api.Controllers;
 
@@ -19,8 +20,8 @@ public class OfferAvailabilityController : ControllerBase
         _context = context;
     }
 
-    [HttpGet("{offerId}")]
-    public async Task<ActionResult<List<OfferAvailabilityDto>>> GetOfferAvailability(int offerId)
+    [HttpGet("{offerId:guid}")]
+    public async Task<ActionResult<List<OfferAvailabilityDto>>> GetOfferAvailability(Guid offerId)
     {
         var offer = await _context.Offers
             .Include(o => o.Availabilities)
@@ -44,10 +45,12 @@ public class OfferAvailabilityController : ControllerBase
         return Ok(availabilities);
     }
 
-    [HttpPost("{offerId}")]
-    public async Task<ActionResult<OfferAvailabilityDto>> CreateAvailability(int offerId, CreateAvailabilityDto request)
+    [HttpPost("{offerId:guid}")]
+    public async Task<ActionResult<OfferAvailabilityDto>> CreateAvailability(Guid offerId, CreateAvailabilityDto request)
     {
-        var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userIdString = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value 
+            ?? User.FindFirst("sub")?.Value 
+            ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(userIdString, out var userId))
         {
             return Unauthorized();
@@ -95,10 +98,12 @@ public class OfferAvailabilityController : ControllerBase
         });
     }
 
-    [HttpPut("{availabilityId}")]
-    public async Task<ActionResult<OfferAvailabilityDto>> UpdateAvailability(int availabilityId, UpdateAvailabilityDto request)
+    [HttpPut("{availabilityId:guid}")]
+    public async Task<ActionResult<OfferAvailabilityDto>> UpdateAvailability(Guid availabilityId, UpdateAvailabilityDto request)
     {
-        var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userIdString = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value 
+            ?? User.FindFirst("sub")?.Value 
+            ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(userIdString, out var userId))
         {
             return Unauthorized();
@@ -158,10 +163,12 @@ public class OfferAvailabilityController : ControllerBase
         });
     }
 
-    [HttpDelete("{availabilityId}")]
-    public async Task<ActionResult> DeleteAvailability(int availabilityId)
+    [HttpDelete("{availabilityId:guid}")]
+    public async Task<ActionResult> DeleteAvailability(Guid availabilityId)
     {
-        var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userIdString = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value 
+            ?? User.FindFirst("sub")?.Value 
+            ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(userIdString, out var userId))
         {
             return Unauthorized();
@@ -187,8 +194,8 @@ public class OfferAvailabilityController : ControllerBase
         return NoContent();
     }
 
-    [HttpGet("{offerId}/available-slots")]
-    public async Task<ActionResult<List<AvailableSlotDto>>> GetAvailableSlots(int offerId, [FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
+    [HttpGet("{offerId:guid}/available-slots")]
+    public async Task<ActionResult<List<AvailableSlotDto>>> GetAvailableSlots(Guid offerId, [FromQuery] DateTime startDate, [FromQuery] DateTime endDate)
     {
         var offer = await _context.Offers
             .Include(o => o.Availabilities)
@@ -262,8 +269,8 @@ public class OfferAvailabilityController : ControllerBase
 // DTOs
 public class OfferAvailabilityDto
 {
-    public int Id { get; set; }
-    public int OfferId { get; set; }
+    public Guid Id { get; set; }
+    public Guid OfferId { get; set; }
     public int DayOfWeek { get; set; } // 0 = Sunday, 1 = Monday, etc.
     public string StartTime { get; set; } = string.Empty; // HH:mm format
     public string EndTime { get; set; } = string.Empty; // HH:mm format
@@ -289,5 +296,5 @@ public class AvailableSlotDto
 {
     public DateTime DateTime { get; set; }
     public int DurationInMinutes { get; set; }
-    public int AvailabilityId { get; set; }
+    public Guid AvailabilityId { get; set; }
 }

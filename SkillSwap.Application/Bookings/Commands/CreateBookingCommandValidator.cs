@@ -7,8 +7,8 @@ public class CreateBookingCommandValidator : AbstractValidator<CreateBookingComm
     public CreateBookingCommandValidator()
     {
         RuleFor(x => x.OfferId)
-            .GreaterThan(0)
-            .WithMessage("OfferId must be greater than 0");
+            .NotEmpty()
+            .WithMessage("OfferId is required");
 
         RuleFor(x => x.UserId)
             .NotEmpty()

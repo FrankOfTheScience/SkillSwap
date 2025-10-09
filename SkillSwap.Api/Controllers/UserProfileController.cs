@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using SkillSwap.Api.Dtos;
 using SkillSwap.Infrastructure;
 using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace SkillSwap.Api.Controllers;
 
@@ -22,7 +23,9 @@ public class UserProfileController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<GetUserProfileResponse>> GetProfile()
     {
-        var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userIdString = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value 
+            ?? User.FindFirst("sub")?.Value 
+            ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(userIdString, out var userId))
         {
             return Unauthorized();
@@ -66,48 +69,67 @@ public class UserProfileController : ControllerBase
     [HttpPut]
     public async Task<ActionResult<GetUserProfileResponse>> UpdateProfile(UpdateUserProfileRequest request)
     {
-        var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (!Guid.TryParse(userIdString, out var userId))
+        try
         {
-            return Unauthorized();
-        }
+            var userIdString = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value 
+                ?? User.FindFirst("sub")?.Value 
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdString, out var userId))
+            {
+                return Unauthorized();
+            }
 
-        var user = await _context.Users.FindAsync(userId);
-        if (user == null)
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            // Update user properties only if they are provided
+            if (request.FirstName != null) user.FirstName = request.FirstName;
+            if (request.LastName != null) user.LastName = request.LastName;
+            if (request.Bio != null) user.Bio = request.Bio;
+            if (request.PhoneNumber != null) user.PhoneNumber = request.PhoneNumber;
+            if (request.DateOfBirth.HasValue) 
+            {
+                // Ensure DateOfBirth is stored as UTC or unspecified
+                user.DateOfBirth = request.DateOfBirth.Value.Kind == DateTimeKind.Unspecified 
+                    ? DateTime.SpecifyKind(request.DateOfBirth.Value, DateTimeKind.Utc)
+                    : request.DateOfBirth.Value.ToUniversalTime();
+            }
+            if (request.City != null) user.City = request.City;
+            if (request.Country != null) user.Country = request.Country;
+            if (request.Profession != null) user.Profession = request.Profession;
+            if (request.Company != null) user.Company = request.Company;
+            if (request.YearsOfExperience.HasValue) user.YearsOfExperience = request.YearsOfExperience.Value;
+            if (request.Skills != null) user.Skills = request.Skills;
+            if (request.PreferredLanguage != null) user.PreferredLanguage = request.PreferredLanguage;
+            if (request.TimeZone != null) user.TimeZone = request.TimeZone;
+            if (request.EmailNotifications.HasValue) user.EmailNotifications = request.EmailNotifications.Value;
+            if (request.PushNotifications.HasValue) user.PushNotifications = request.PushNotifications.Value;
+
+            user.LastProfileUpdate = DateTime.UtcNow;
+            user.ProfileCompletionPercentage = CalculateProfileCompletion(user);
+
+            await _context.SaveChangesAsync();
+
+            // Return updated profile
+            return await GetProfile();
+        }
+        catch (Exception ex)
         {
-            return NotFound();
+            // Log the error (you might want to use a proper logger)
+            Console.WriteLine($"Error updating profile: {ex.Message}");
+            return StatusCode(500, new { Error = "Failed to update profile", Details = ex.Message });
         }
-
-        // Update user properties
-        if (request.FirstName != null) user.FirstName = request.FirstName;
-        if (request.LastName != null) user.LastName = request.LastName;
-        if (request.Bio != null) user.Bio = request.Bio;
-        if (request.PhoneNumber != null) user.PhoneNumber = request.PhoneNumber;
-        if (request.DateOfBirth.HasValue) user.DateOfBirth = request.DateOfBirth;
-        if (request.City != null) user.City = request.City;
-        if (request.Country != null) user.Country = request.Country;
-        if (request.Profession != null) user.Profession = request.Profession;
-        if (request.Company != null) user.Company = request.Company;
-        if (request.YearsOfExperience.HasValue) user.YearsOfExperience = request.YearsOfExperience.Value;
-        if (request.Skills != null) user.Skills = request.Skills;
-        if (request.PreferredLanguage != null) user.PreferredLanguage = request.PreferredLanguage;
-        if (request.TimeZone != null) user.TimeZone = request.TimeZone;
-        if (request.EmailNotifications.HasValue) user.EmailNotifications = request.EmailNotifications.Value;
-        if (request.PushNotifications.HasValue) user.PushNotifications = request.PushNotifications.Value;
-
-        user.LastProfileUpdate = DateTime.UtcNow;
-        user.ProfileCompletionPercentage = CalculateProfileCompletion(user);
-
-        await _context.SaveChangesAsync();
-
-        // Return updated profile
-        return await GetProfile();
     }
 
     [HttpGet("completion")]
     public async Task<ActionResult<ProfileCompletionResponse>> GetProfileCompletion()
     {
-        var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userIdString = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value 
+            ?? User.FindFirst("sub")?.Value 
+            ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(userIdString, out var userId))
         {
             return Unauthorized();
@@ -142,6 +164,70 @@ public class UserProfileController : ControllerBase
             MissingFields = missingFields,
             Suggestions = suggestions
         });
+    }
+
+    [HttpPost("upload-image")]
+    public async Task<ActionResult<UploadProfileImageResponse>> UploadProfileImage([FromForm] UploadProfileImageRequest request)
+    {
+        try
+        {
+            var userIdString = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value 
+                ?? User.FindFirst("sub")?.Value 
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdString, out var userId))
+            {
+                return Unauthorized();
+            }
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            // Validate file
+            if (request.Image == null || request.Image.Length == 0)
+            {
+                return BadRequest(new { Error = "No image file provided" });
+            }
+
+            // Check file size (5MB limit)
+            if (request.Image.Length > 5 * 1024 * 1024)
+            {
+                return BadRequest(new { Error = "File size must be less than 5MB" });
+            }
+
+            // Check file type
+            var allowedTypes = new[] { "image/jpeg", "image/jpg", "image/png", "image/gif" };
+            if (!allowedTypes.Contains(request.Image.ContentType.ToLower()))
+            {
+                return BadRequest(new { Error = "Only JPEG, PNG and GIF images are allowed" });
+            }
+
+            // For development, we'll use a placeholder image service
+            // In production, you would upload to cloud storage (AWS S3, Azure Blob, etc.)
+            var fileName = $"profile_{userId}_{DateTime.UtcNow.Ticks}{Path.GetExtension(request.Image.FileName)}";
+            
+            // Use a placeholder image service for development
+            var imageUrl = $"https://via.placeholder.com/150x150/4F46E5/white?text={user.FirstName?.Substring(0, 1) ?? "U"}";
+
+            // Update user profile image URL
+            user.ProfileImageUrl = imageUrl;
+            user.LastProfileUpdate = DateTime.UtcNow;
+            
+            await _context.SaveChangesAsync();
+
+            return Ok(new UploadProfileImageResponse
+            {
+                ProfileImageUrl = imageUrl,
+                Message = "Profile image uploaded successfully"
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error uploading profile image: {ex.Message}");
+            return StatusCode(500, new { Error = "Failed to upload image", Details = ex.Message });
+        }
     }
 
     private int CalculateProfileCompletion(Domain.User user)

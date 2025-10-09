@@ -6,7 +6,7 @@ using SkillSwap.Domain;
 
 namespace SkillSwap.Application.Bookings.Commands;
 
-public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand, int>
+public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand, Guid>
 {
     private readonly IApplicationDbContext _context;
     private readonly IValidator<CreateBookingCommand> _validator;
@@ -22,7 +22,7 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
         _notificationService = notificationService;
     }
 
-    public async Task<int> Handle(CreateBookingCommand request, CancellationToken cancellationToken)
+    public async Task<Guid> Handle(CreateBookingCommand request, CancellationToken cancellationToken)
     {
         var validation = await _validator.ValidateAsync(request, cancellationToken);
         if (!validation.IsValid)
@@ -53,14 +53,15 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
 
         var booking = new Booking
         {
+            Id = Guid.NewGuid(),
             OfferId = request.OfferId,
             UserId = request.UserId,
             Amount = offer.Price,
             CommissionAmount = commissionAmount,
             Status = BookingStatus.Pending,
             CreatedAt = DateTime.UtcNow,
-            // Scheduling information
-            ScheduledDateTime = request.ScheduledDateTime ?? DateTime.UtcNow.AddHours(24), // Default to tomorrow if not specified
+            // Scheduling information - ensure DateTime is UTC
+            ScheduledDateTime = request.ScheduledDateTime?.ToUniversalTime() ?? DateTime.UtcNow.AddHours(24),
             DurationInMinutes = request.DurationInMinutes ?? offer.DurationInMinutes,
             Location = request.Location ?? offer.Location,
             IsOnline = request.IsOnline ?? offer.IsOnline,

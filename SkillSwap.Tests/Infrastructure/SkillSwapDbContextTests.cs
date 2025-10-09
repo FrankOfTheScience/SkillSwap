@@ -168,7 +168,7 @@ public class SkillSwapDbContextTests
 
         // Assert
         offerEntityType.Should().NotBeNull();
-        
+
         // Check if Price property is configured (for non-InMemory databases this would have decimal precision)
         var priceProperty = offerEntityType!.FindProperty(nameof(Offer.Price));
         priceProperty.Should().NotBeNull();
@@ -210,7 +210,7 @@ public class SkillSwapDbContextTests
     {
         // Arrange
         var options = CreateInMemoryDbContextOptions();
-        var offerId = 1;
+        var offerId = Guid.NewGuid();
         var createdBy = Guid.NewGuid();
         var offer = new Offer
         {
@@ -243,13 +243,13 @@ public class SkillSwapDbContextTests
     {
         // Arrange
         var options = CreateInMemoryDbContextOptions();
-        var bookingId = 1;
+        var bookingId = Guid.NewGuid();
         var userId = Guid.NewGuid();
         var booking = new Booking
         {
             Id = bookingId,
             UserId = userId,
-            OfferId = 1,
+            OfferId = Guid.NewGuid(),
             Status = BookingStatus.Completed
         };
 

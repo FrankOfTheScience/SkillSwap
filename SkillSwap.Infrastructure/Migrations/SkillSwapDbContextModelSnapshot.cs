@@ -24,11 +24,9 @@ namespace SkillSwap.Infrastructure.Migrations
 
             modelBuilder.Entity("SkillSwap.Domain.Booking", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                        .HasColumnType("uuid");
 
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18,2)");
@@ -75,8 +73,8 @@ namespace SkillSwap.Infrastructure.Migrations
                     b.Property<string>("MeetingUrl")
                         .HasColumnType("text");
 
-                    b.Property<int>("OfferId")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("OfferId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("ProviderFeedback")
                         .HasColumnType("text");
@@ -113,11 +111,9 @@ namespace SkillSwap.Infrastructure.Migrations
 
             modelBuilder.Entity("SkillSwap.Domain.Offer", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Category")
                         .HasColumnType("text");
@@ -173,11 +169,9 @@ namespace SkillSwap.Infrastructure.Migrations
 
             modelBuilder.Entity("SkillSwap.Domain.OfferAvailability", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                        .HasColumnType("uuid");
 
                     b.Property<int>("DayOfWeek")
                         .HasColumnType("integer");
@@ -188,8 +182,8 @@ namespace SkillSwap.Infrastructure.Migrations
                     b.Property<bool>("IsAvailable")
                         .HasColumnType("boolean");
 
-                    b.Property<int>("OfferId")
-                        .HasColumnType("integer");
+                    b.Property<Guid>("OfferId")
+                        .HasColumnType("uuid");
 
                     b.Property<TimeOnly>("StartTime")
                         .HasColumnType("time without time zone");
