@@ -9,8 +9,8 @@ import ModalWrapper from "./ModalWrapper";
 interface ViewOfferModalProps {
   isOpen: boolean;
   onClose: () => void;
-  offerId: number | null;
-  onEdit?: (offerId: number) => void;
+  offerId: string | null;
+  onEdit?: (offerId: string) => void;
   onBack?: () => void;
   onBookOffer?: (offer: Offer) => void;
 }

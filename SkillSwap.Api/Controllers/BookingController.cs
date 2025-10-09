@@ -8,6 +8,7 @@ using SkillSwap.Domain;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace SkillSwap.Api.Controllers;
 
@@ -38,7 +39,9 @@ public class BookingController : ControllerBase
     {
         try
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub) 
+                ?? User.FindFirst("sub") 
+                ?? User.FindFirst(ClaimTypes.NameIdentifier);
             if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out Guid userId))
             {
                 return Unauthorized(new { error = "Invalid user token" });
@@ -90,12 +93,14 @@ public class BookingController : ControllerBase
     /// <summary>
     /// Gets a specific booking by ID (only if user owns it)
     /// </summary>
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetBooking(int id)
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetBooking(Guid id)
     {
         try
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub) 
+                ?? User.FindFirst("sub") 
+                ?? User.FindFirst(ClaimTypes.NameIdentifier);
             if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out Guid userId))
             {
                 return Unauthorized(new { error = "Invalid user token" });
@@ -149,12 +154,14 @@ public class BookingController : ControllerBase
     /// <summary>
     /// Cancels a booking (only if user owns it and it's pending)
     /// </summary>
-    [HttpPatch("{id}/cancel")]
-    public async Task<IActionResult> CancelBooking(int id)
+    [HttpPatch("{id:guid}/cancel")]
+    public async Task<IActionResult> CancelBooking(Guid id)
     {
         try
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub) 
+                ?? User.FindFirst("sub") 
+                ?? User.FindFirst(ClaimTypes.NameIdentifier);
             if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out Guid userId))
             {
                 return Unauthorized(new { error = "Invalid user token" });
@@ -275,13 +282,15 @@ public class BookingController : ControllerBase
         }
     }
 
-    [HttpGet("{id}/status")]
+    [HttpGet("{id:guid}/status")]
     [Authorize(Roles = "User,Admin")]
-    public async Task<IActionResult> GetBookingStatus(int id)
+    public async Task<IActionResult> GetBookingStatus(Guid id)
     {
         try
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            var userIdClaim = User.FindFirst(JwtRegisteredClaimNames.Sub) 
+                ?? User.FindFirst("sub") 
+                ?? User.FindFirst(ClaimTypes.NameIdentifier);
             if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out Guid userId))
             {
                 return Unauthorized(new { error = "Invalid user token" });

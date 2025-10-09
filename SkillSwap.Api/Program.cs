@@ -37,9 +37,12 @@ internal class Program
 
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
-        
+
         // Add controller support for webhook and booking endpoints
         builder.Services.AddControllers();
+
+        // Add SignalR
+        builder.Services.AddSignalR();
 
         var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
                                ?? Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
@@ -49,7 +52,7 @@ internal class Program
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<SkillSwapDbContext>());
         builder.Services.AddScoped<IAuthService, AuthService>();
-        
+
         // Add HTTP client factory with resilience
         builder.Services.AddHttpClient();
         builder.Services.AddHttpClient("Default");
@@ -62,15 +65,15 @@ internal class Program
         {
             client.Timeout = TimeSpan.FromSeconds(30);
         });
-        
+
         builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(CreateOfferCommand).Assembly));
 
         // Configure Stripe
         builder.Services.Configure<SkillSwap.Api.Configuration.StripeSettings>(builder.Configuration.GetSection("Stripe"));
-        
+
         // Configure Resilience
         builder.Services.Configure<ResilienceSettings>(builder.Configuration.GetSection(ResilienceSettings.SectionName));
-        
+
         // Register ResilienceSettings as a singleton for direct injection
         builder.Services.AddSingleton<ResilienceSettings>(provider =>
         {
@@ -78,15 +81,19 @@ internal class Program
             builder.Configuration.GetSection(ResilienceSettings.SectionName).Bind(resilienceSettings);
             return resilienceSettings;
         });
-        
+
         // Register resilience services
         builder.Services.AddSingleton<IResiliencePolicyService, ResiliencePolicyService>();
         builder.Services.AddScoped<IResilientDatabaseService, ResilientDatabaseService>();
         builder.Services.AddScoped<IResilientHttpClientService, ResilientHttpClientService>();
-        
+
         // Register Stripe services with resilience
         builder.Services.AddScoped<SkillSwap.Application.Common.Interfaces.IStripeService, SkillSwap.Api.Services.StripeService>();
         builder.Services.AddScoped<SkillSwap.Application.Common.Interfaces.IStripeEventParser, SkillSwap.Api.Services.StripeEventParser>();
+
+        // Register dashboard service
+        builder.Services.AddScoped<SkillSwap.Api.Services.IDashboardService, SkillSwap.Api.Services.DashboardService>();
+        builder.Services.AddScoped<SkillSwap.Application.Common.Interfaces.IDashboardNotificationService, SkillSwap.Api.Services.DashboardService>();
 
 
         // Add session support for secure booking flow
@@ -117,7 +124,8 @@ internal class Program
             {
                 policy.WithOrigins(allowedOrigins)
                       .AllowAnyHeader()
-                      .AllowAnyMethod();
+                      .AllowAnyMethod()
+                      .AllowCredentials(); // Required for SignalR
             });
         });
 
@@ -128,14 +136,14 @@ internal class Program
         })
         .AddJwtBearer(options =>
         {
-            var jwtKey = builder.Configuration["Jwt:Key"] 
+            var jwtKey = builder.Configuration["Jwt:Key"]
                         ?? Environment.GetEnvironmentVariable("Jwt__Key")
                         ?? Environment.GetEnvironmentVariable("SKILLSWAP_JWT_KEY");
-                        
+
             var jwtIssuer = builder.Configuration["Jwt:Issuer"]
                            ?? Environment.GetEnvironmentVariable("Jwt__Issuer")
                            ?? "SkillSwap";
-                           
+
             var jwtAudience = builder.Configuration["Jwt:Audience"]
                              ?? Environment.GetEnvironmentVariable("Jwt__Audience")
                              ?? "SkillSwapUsers";
@@ -196,6 +204,9 @@ internal class Program
 
         // Map controllers for all API endpoints
         app.MapControllers();
+
+        // Map SignalR hubs
+        app.MapHub<SkillSwap.Api.Hubs.DashboardHub>("/hubs/dashboard");
 
         app.Run();
     }

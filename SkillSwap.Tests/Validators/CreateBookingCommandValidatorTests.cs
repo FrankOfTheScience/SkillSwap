@@ -19,7 +19,7 @@ public class CreateBookingCommandValidatorTests
     {
         // Arrange
         var command = new CreateBookingCommand(
-            OfferId: 1,
+            OfferId: Guid.NewGuid(),
             UserId: Guid.NewGuid()
         );
 
@@ -31,15 +31,12 @@ public class CreateBookingCommandValidatorTests
         result.Errors.Should().BeEmpty();
     }
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-1)]
-    [InlineData(-100)]
-    public void Should_BeInvalid_WhenOfferIdIsZeroOrNegative(int offerId)
+    [Fact]
+    public void Should_BeInvalid_WhenOfferIdIsEmpty()
     {
         // Arrange
         var command = new CreateBookingCommand(
-            OfferId: offerId,
+            OfferId: Guid.Empty,
             UserId: Guid.NewGuid()
         );
 
@@ -49,7 +46,7 @@ public class CreateBookingCommandValidatorTests
         // Assert
         result.IsValid.Should().BeFalse();
         result.Errors.Should().ContainSingle()
-            .Which.ErrorMessage.Should().Be("OfferId must be greater than 0");
+            .Which.ErrorMessage.Should().Be("OfferId is required");
     }
 
     [Fact]
@@ -57,7 +54,7 @@ public class CreateBookingCommandValidatorTests
     {
         // Arrange
         var command = new CreateBookingCommand(
-            OfferId: 1,
+            OfferId: Guid.NewGuid(),
             UserId: Guid.Empty
         );
 
@@ -75,7 +72,7 @@ public class CreateBookingCommandValidatorTests
     {
         // Arrange
         var command = new CreateBookingCommand(
-            OfferId: 0,
+            OfferId: Guid.Empty,
             UserId: Guid.Empty
         );
 
@@ -85,16 +82,16 @@ public class CreateBookingCommandValidatorTests
         // Assert
         result.IsValid.Should().BeFalse();
         result.Errors.Should().HaveCount(2);
-        result.Errors.Should().Contain(e => e.ErrorMessage == "OfferId must be greater than 0");
+        result.Errors.Should().Contain(e => e.ErrorMessage == "OfferId is required");
         result.Errors.Should().Contain(e => e.ErrorMessage == "UserId is required");
     }
 
     [Fact]
-    public void Should_BeValid_WhenOfferIdIsLarge()
+    public void Should_BeValid_WhenOfferIdIsValidGuid()
     {
         // Arrange
         var command = new CreateBookingCommand(
-            OfferId: int.MaxValue,
+            OfferId: Guid.NewGuid(),
             UserId: Guid.NewGuid()
         );
 

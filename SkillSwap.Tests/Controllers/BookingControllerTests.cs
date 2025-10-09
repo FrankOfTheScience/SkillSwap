@@ -32,7 +32,7 @@ public class BookingControllerTests : IDisposable
         _mockLogger = Substitute.For<ILogger<BookingController>>();
         _dbContext = TestHelper.CreateInMemoryDbContext();
         _mockContext = Substitute.For<IApplicationDbContext>();
-        
+
         // Use the real context for tests that need database access
         _mockContext.Bookings.Returns(_dbContext.Bookings);
         _controller = new BookingController(_dbContext, _mockMediator, _mockLogger); // Use real context
@@ -52,7 +52,7 @@ public class BookingControllerTests : IDisposable
         var principal = new ClaimsPrincipal(identity);
 
         var httpContext = new DefaultHttpContext { User = principal };
-        
+
         // Setup basic session mock for BookingSuccess tests
         var session = Substitute.For<ISession>();
         httpContext.Session = session;
@@ -86,11 +86,11 @@ public class BookingControllerTests : IDisposable
             Price = 50.0m,
             CreatedBy = Guid.NewGuid()
         };
-        
+
         _dbContext.Users.Add(user);
         _dbContext.Offers.Add(offer);
         await _dbContext.SaveChangesAsync();
-        
+
         var booking = new Booking
         {
             Status = BookingStatus.Completed,
@@ -190,11 +190,11 @@ public class BookingControllerTests : IDisposable
             Price = 50.0m,
             CreatedBy = Guid.NewGuid()
         };
-        
+
         _dbContext.Users.Add(user);
         _dbContext.Offers.Add(offer);
         await _dbContext.SaveChangesAsync();
-        
+
         var booking = new Booking
         {
             Status = BookingStatus.Cancelled,
@@ -215,7 +215,7 @@ public class BookingControllerTests : IDisposable
         result.Should().BeOfType<OkObjectResult>();
         var okResult = result as OkObjectResult;
         var response = okResult?.Value;
-        
+
         response.Should().NotBeNull();
         response.GetType().GetProperty("bookingId")?.GetValue(response).Should().Be(booking.Id);
         response.GetType().GetProperty("status")?.GetValue(response).Should().Be("Cancelled");
@@ -233,7 +233,7 @@ public class BookingControllerTests : IDisposable
         var badRequestResult = result as BadRequestObjectResult;
         badRequestResult.Should().NotBeNull();
         var response = badRequestResult!.Value;
-        
+
         response!.GetType().GetProperty("error")?.GetValue(response).Should().Be("Missing session_id parameter");
     }
 
@@ -251,7 +251,7 @@ public class BookingControllerTests : IDisposable
         var notFoundResult = result as NotFoundObjectResult;
         notFoundResult.Should().NotBeNull();
         var response = notFoundResult!.Value;
-        
+
         response!.GetType().GetProperty("error")?.GetValue(response).Should().Be("Booking not found");
     }
 
@@ -261,7 +261,7 @@ public class BookingControllerTests : IDisposable
         // Arrange
         var userId = Guid.NewGuid();
         SetupControllerUser(userId, "User");
-        
+
         var offer = new Offer
         {
             Title = "Guitar Lessons",
@@ -269,10 +269,10 @@ public class BookingControllerTests : IDisposable
             Price = 50.0m,
             CreatedBy = Guid.NewGuid()
         };
-        
+
         _dbContext.Offers.Add(offer);
         await _dbContext.SaveChangesAsync();
-        
+
         var booking = new Booking
         {
             Status = BookingStatus.Pending,
@@ -295,7 +295,7 @@ public class BookingControllerTests : IDisposable
         result.Should().BeOfType<OkObjectResult>();
         var okResult = result as OkObjectResult;
         var response = okResult?.Value;
-        
+
         response.Should().NotBeNull();
         response.GetType().GetProperty("bookingId")?.GetValue(response).Should().Be(booking.Id);
         response.GetType().GetProperty("status")?.GetValue(response).Should().Be("Pending");
@@ -309,8 +309,8 @@ public class BookingControllerTests : IDisposable
         // Arrange
         var userId = Guid.NewGuid();
         SetupControllerUser(userId, "User");
-        
-        var bookingId = 999;
+
+        var bookingId = Guid.NewGuid();
 
         // Act
         var result = await _controller.GetBookingStatus(bookingId);
@@ -320,7 +320,7 @@ public class BookingControllerTests : IDisposable
         var notFoundResult = result as NotFoundObjectResult;
         notFoundResult.Should().NotBeNull();
         var response = notFoundResult!.Value;
-        
+
         response!.GetType().GetProperty("error")?.GetValue(response).Should().Be("Booking not found");
     }
 }

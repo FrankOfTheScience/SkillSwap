@@ -6,18 +6,23 @@ using SkillSwap.Domain;
 
 namespace SkillSwap.Application.Bookings.Commands;
 
-public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand, int>
+public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand, Guid>
 {
     private readonly IApplicationDbContext _context;
     private readonly IValidator<CreateBookingCommand> _validator;
+    private readonly IDashboardNotificationService _notificationService;
 
-    public CreateBookingCommandHandler(IApplicationDbContext context, IValidator<CreateBookingCommand> validator)
+    public CreateBookingCommandHandler(
+        IApplicationDbContext context, 
+        IValidator<CreateBookingCommand> validator,
+        IDashboardNotificationService notificationService)
     {
         _context = context;
         _validator = validator;
+        _notificationService = notificationService;
     }
 
-    public async Task<int> Handle(CreateBookingCommand request, CancellationToken cancellationToken)
+    public async Task<Guid> Handle(CreateBookingCommand request, CancellationToken cancellationToken)
     {
         var validation = await _validator.ValidateAsync(request, cancellationToken);
         if (!validation.IsValid)
@@ -48,16 +53,35 @@ public class CreateBookingCommandHandler : IRequestHandler<CreateBookingCommand,
 
         var booking = new Booking
         {
+            Id = Guid.NewGuid(),
             OfferId = request.OfferId,
             UserId = request.UserId,
             Amount = offer.Price,
             CommissionAmount = commissionAmount,
             Status = BookingStatus.Pending,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            // Scheduling information - ensure DateTime is UTC
+            ScheduledDateTime = request.ScheduledDateTime?.ToUniversalTime() ?? DateTime.UtcNow.AddHours(24),
+            DurationInMinutes = request.DurationInMinutes ?? offer.DurationInMinutes,
+            Location = request.Location ?? offer.Location,
+            IsOnline = request.IsOnline ?? offer.IsOnline,
+            CustomerNotes = request.CustomerNotes
         };
 
         _context.Bookings.Add(booking);
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Notify dashboard clients about the new booking
+        try
+        {
+            await _notificationService.NotifyBookingCreated(booking);
+        }
+        catch (Exception ex)
+        {
+            // Log the error but don't fail the booking creation
+            // In a real application, you might want to use a logger here
+            Console.WriteLine($"Failed to send dashboard notification: {ex.Message}");
+        }
 
         return booking.Id;
     }

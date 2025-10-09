@@ -11,7 +11,9 @@ import Toast, { useToast } from "./Toast";
 
 interface OfferListProps {
   user: User | null;
-  onViewOffer?: (offerId: number) => void;
+  onViewOffer?: (offerId: string) => void;
+  onEditOffer?: (offerId: string) => void;
+  refreshTrigger?: number; // Add a refresh trigger prop
 }
 
 interface PagedOffersResult {
@@ -39,7 +41,7 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
-export default function OfferList({ user, onViewOffer }: OfferListProps) {
+export default function OfferList({ user, onViewOffer, onEditOffer, refreshTrigger }: OfferListProps) {
   const [offersResult, setOffersResult] = useState<PagedOffersResult>({
     offers: [],
     totalCount: 0,
@@ -61,8 +63,8 @@ export default function OfferList({ user, onViewOffer }: OfferListProps) {
   const [sortDescending, setSortDescending] = useState(false);
   
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [bookingLoading, setBookingLoading] = useState<Record<number, boolean>>({});
-  const [bookingError, setBookingError] = useState<Record<number, string>>({});
+  const [bookingLoading, setBookingLoading] = useState<Record<string, boolean>>({});
+  const [bookingError, setBookingError] = useState<Record<string, string>>({});
   const { toast, showToast, hideToast } = useToast();
   
   const [deleteModal, setDeleteModal] = useState<{isOpen: boolean, offer: Offer | null}>({
@@ -106,6 +108,13 @@ export default function OfferList({ user, onViewOffer }: OfferListProps) {
     const isRefresh = offersResult.offers.length > 0; // Determine if this is a refresh
     loadOffers(isRefresh);
   }, [loadOffers, offersResult.offers.length]);
+
+  // Listen for refresh trigger changes
+  useEffect(() => {
+    if (refreshTrigger && refreshTrigger > 0) {
+      loadOffers(true); // Force refresh when trigger changes
+    }
+  }, [refreshTrigger, loadOffers]);
 
   const handleSearchSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -192,9 +201,16 @@ export default function OfferList({ user, onViewOffer }: OfferListProps) {
     setBookingLoading(prev => ({ ...prev, [offer.id]: true }));
 
     try {
+      // For now, schedule for tomorrow at 10 AM
+      // Later this will be replaced with proper date/time selection
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(10, 0, 0, 0);
+      
       const checkoutSession = await createCheckoutSession({
         offerId: offer.id,
-        userId: user.id
+        userId: user.id,
+        scheduledDateTime: tomorrow.toISOString(),
       });
 
       showToast(`Redirecting to payment for "${offer.title}"...`, 'info', 2000);
@@ -394,12 +410,12 @@ export default function OfferList({ user, onViewOffer }: OfferListProps) {
                     <div className="flex gap-3">
                       {user && (isOwner(offer) || isAdmin()) ? (
                         <>
-                          <Link
-                            href={`/offers/${offer.id}/edit`}
+                          <button
+                            onClick={() => onEditOffer?.(offer.id)}
                             className="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-md flex items-center gap-2"
                           >
                             ✏️ Edit
-                          </Link>
+                          </button>
                           <button
                             onClick={() => handleDeleteClick(offer)}
                             className="bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-md flex items-center gap-2"

@@ -3,7 +3,7 @@ namespace SkillSwap.Application.Common.Interfaces;
 public interface IStripeService
 {
     Task<string> CreateCheckoutSessionAsync(
-        int bookingId,
+        Guid bookingId,
         decimal amount,
         decimal commissionAmount,
         string successUrl,

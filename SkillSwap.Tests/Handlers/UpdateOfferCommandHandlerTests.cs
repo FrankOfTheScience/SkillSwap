@@ -103,7 +103,7 @@ public class UpdateOfferHandlerTests
 
         var handler = new UpdateOfferCommandHandler(ctx, mapper, accessor);
 
-        var cmd = new UpdateOfferCommand(999, "x", "y", 1m, Guid.NewGuid());
+        var cmd = new UpdateOfferCommand(Guid.NewGuid(), "x", "y", 1m, Guid.NewGuid());
         var result = await handler.Handle(cmd, CancellationToken.None);
 
         result.Should().BeNull();

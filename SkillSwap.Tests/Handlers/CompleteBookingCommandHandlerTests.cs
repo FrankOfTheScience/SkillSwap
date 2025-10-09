@@ -26,10 +26,10 @@ public class CompleteBookingCommandHandlerTests : IDisposable
         _mockLogger = Substitute.For<ILogger<CompleteBookingCommandHandler>>();
         _dbContext = TestHelper.CreateInMemoryDbContext();
         _mockContext = Substitute.For<IApplicationDbContext>();
-        
+
         _mockContext.Bookings.Returns(_dbContext.Bookings);
         _mockContext.SaveChangesAsync(Arg.Any<CancellationToken>()).Returns(_dbContext.SaveChangesAsync(default));
-        
+
         _handler = new CompleteBookingCommandHandler(_mockContext, _mockLogger);
     }
 
@@ -55,11 +55,11 @@ public class CompleteBookingCommandHandlerTests : IDisposable
             Price = 50.0m,
             CreatedBy = Guid.NewGuid()
         };
-        
+
         _dbContext.Users.Add(user);
         _dbContext.Offers.Add(offer);
         await _dbContext.SaveChangesAsync();
-        
+
         var booking = new Booking
         {
             Status = BookingStatus.Pending,
@@ -86,7 +86,7 @@ public class CompleteBookingCommandHandlerTests : IDisposable
 
         // Assert
         result.Should().BeTrue();
-        
+
         var updatedBooking = await _dbContext.Bookings.FindAsync(booking.Id);
         updatedBooking.Should().NotBeNull();
         updatedBooking!.Status.Should().Be(BookingStatus.Completed);
@@ -102,7 +102,7 @@ public class CompleteBookingCommandHandlerTests : IDisposable
         // Arrange
         var command = new CompleteBookingCommand
         {
-            BookingId = 999, // Non-existent booking ID
+            BookingId = Guid.NewGuid(), // Non-existent booking ID
             StripeCheckoutSessionId = "cs_test_12345",
             StripePaymentIntentId = "pi_test_12345",
             PaymentStatus = "succeeded"
@@ -113,7 +113,7 @@ public class CompleteBookingCommandHandlerTests : IDisposable
 
         // Assert
         result.Should().BeFalse();
-        
+
         // Note: Logging assertion removed due to complexity with structured logging
         // The important part is that the method returns false for non-existent bookings
     }
@@ -135,11 +135,11 @@ public class CompleteBookingCommandHandlerTests : IDisposable
             Price = 50.0m,
             CreatedBy = Guid.NewGuid()
         };
-        
+
         _dbContext.Users.Add(user);
         _dbContext.Offers.Add(offer);
         await _dbContext.SaveChangesAsync();
-        
+
         var booking = new Booking
         {
             Status = BookingStatus.Completed, // Already completed
@@ -168,7 +168,7 @@ public class CompleteBookingCommandHandlerTests : IDisposable
 
         // Assert
         result.Should().BeTrue();
-        
+
         var updatedBooking = await _dbContext.Bookings.FindAsync(booking.Id);
         updatedBooking.Should().NotBeNull();
         updatedBooking!.Status.Should().Be(BookingStatus.Completed);
@@ -193,11 +193,11 @@ public class CompleteBookingCommandHandlerTests : IDisposable
             Price = 50.0m,
             CreatedBy = Guid.NewGuid()
         };
-        
+
         _dbContext.Users.Add(user);
         _dbContext.Offers.Add(offer);
         await _dbContext.SaveChangesAsync();
-        
+
         var booking = new Booking
         {
             Status = BookingStatus.Cancelled,
@@ -224,7 +224,7 @@ public class CompleteBookingCommandHandlerTests : IDisposable
 
         // Assert
         result.Should().BeTrue();
-        
+
         var updatedBooking = await _dbContext.Bookings.FindAsync(booking.Id);
         updatedBooking.Should().NotBeNull();
         updatedBooking!.Status.Should().Be(BookingStatus.Completed);
@@ -248,11 +248,11 @@ public class CompleteBookingCommandHandlerTests : IDisposable
             Price = 50.0m,
             CreatedBy = Guid.NewGuid()
         };
-        
+
         _dbContext.Users.Add(user);
         _dbContext.Offers.Add(offer);
         await _dbContext.SaveChangesAsync();
-        
+
         var booking = new Booking
         {
             Status = BookingStatus.Pending,
@@ -279,7 +279,7 @@ public class CompleteBookingCommandHandlerTests : IDisposable
 
         // Assert
         result.Should().BeTrue();
-        
+
         var updatedBooking = await _dbContext.Bookings.FindAsync(booking.Id);
         updatedBooking.Should().NotBeNull();
         updatedBooking!.Status.Should().Be(BookingStatus.Completed);
@@ -305,11 +305,11 @@ public class CompleteBookingCommandHandlerTests : IDisposable
             Price = 50.0m,
             CreatedBy = Guid.NewGuid()
         };
-        
+
         _dbContext.Users.Add(user);
         _dbContext.Offers.Add(offer);
         await _dbContext.SaveChangesAsync();
-        
+
         var booking = new Booking
         {
             Status = BookingStatus.Pending,
@@ -336,7 +336,7 @@ public class CompleteBookingCommandHandlerTests : IDisposable
 
         // Assert
         result.Should().BeTrue();
-        
+
         // Note: Logging assertion removed due to complexity with structured logging
         // The important part is that the booking is completed successfully
     }
@@ -350,7 +350,7 @@ public class CompleteBookingCommandHandlerTests : IDisposable
 
         var command = new CompleteBookingCommand
         {
-            BookingId = 1,
+            BookingId = Guid.NewGuid(),
             StripeCheckoutSessionId = "cs_test_12345",
             StripePaymentIntentId = "pi_test_12345",
             PaymentStatus = "succeeded"
@@ -358,7 +358,7 @@ public class CompleteBookingCommandHandlerTests : IDisposable
 
         // Act & Assert
         var act = async () => await _handler.Handle(command, cancellationTokenSource.Token);
-        
+
         // The handler should handle the cancellation gracefully and return false
         var result = await act.Should().NotThrowAsync();
     }

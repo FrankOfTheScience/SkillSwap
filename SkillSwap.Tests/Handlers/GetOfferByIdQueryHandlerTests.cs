@@ -6,6 +6,7 @@ using SkillSwap.Domain;
 using SkillSwap.Tests.Common;
 
 namespace SkillSwap.Tests.Handlers;
+
 public class GetOfferByIdQueryHandlerTests
 {
     [Fact]
@@ -39,7 +40,7 @@ public class GetOfferByIdQueryHandlerTests
         var mapper = TestHelper.CreateMapper();
         var handler = new GetOfferByIdQueryHandler(dbSub, mapper);
 
-        var result = await handler.Handle(new GetOfferByIdQuery(9999), CancellationToken.None);
+        var result = await handler.Handle(new GetOfferByIdQuery(Guid.NewGuid()), CancellationToken.None);
         result.Should().BeNull();
     }
 }

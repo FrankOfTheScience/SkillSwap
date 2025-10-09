@@ -26,8 +26,8 @@ public class GetOffersQueryHandler : IRequestHandler<GetOffersQuery, PagedOffers
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var searchLower = request.Search.ToLower();
-            query = query.Where(o => 
-                o.Title.ToLower().Contains(searchLower) || 
+            query = query.Where(o =>
+                o.Title.ToLower().Contains(searchLower) ||
                 o.Description.ToLower().Contains(searchLower)
             );
         }
@@ -56,18 +56,18 @@ public class GetOffersQueryHandler : IRequestHandler<GetOffersQuery, PagedOffers
         // Apply sorting
         query = request.SortBy?.ToLower() switch
         {
-            "title" => request.SortDescending 
-                ? query.OrderByDescending(o => o.Title) 
+            "title" => request.SortDescending
+                ? query.OrderByDescending(o => o.Title)
                 : query.OrderBy(o => o.Title),
-            "price" => request.SortDescending 
-                ? query.OrderByDescending(o => o.Price) 
+            "price" => request.SortDescending
+                ? query.OrderByDescending(o => o.Price)
                 : query.OrderBy(o => o.Price),
-            "createdat" or "created" => request.SortDescending 
-                ? query.OrderByDescending(o => o.Id) 
-                : query.OrderBy(o => o.Id),
-            _ => request.SortDescending 
-                ? query.OrderByDescending(o => o.Id) 
-                : query.OrderBy(o => o.Id)
+            "createdat" or "created" => request.SortDescending
+                ? query.OrderByDescending(o => o.CreatedAt)
+                : query.OrderBy(o => o.CreatedAt),
+            _ => request.SortDescending
+                ? query.OrderByDescending(o => o.CreatedAt)
+                : query.OrderBy(o => o.CreatedAt)
         };
 
         // Get total count before pagination
