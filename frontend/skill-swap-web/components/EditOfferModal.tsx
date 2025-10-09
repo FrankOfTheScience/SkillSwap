@@ -6,7 +6,7 @@ import ModalWrapper from "./ModalWrapper";
 interface EditOfferModalProps {
   isOpen: boolean;
   onClose: () => void;
-  offerId: number | null;
+  offerId: string | null;
   onSuccess?: () => void;
 }
 

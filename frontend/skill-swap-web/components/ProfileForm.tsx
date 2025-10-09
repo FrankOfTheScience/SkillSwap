@@ -107,7 +107,6 @@ export default function ProfileForm({ profile, onProfileUpdate }: ProfileFormPro
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Check if anything has actually changed (more lenient check)
     const hasChanges = (
       (formData.firstName || '') !== (profile?.firstName || '') ||
       (formData.lastName || '') !== (profile?.lastName || '') ||
@@ -119,6 +118,11 @@ export default function ProfileForm({ profile, onProfileUpdate }: ProfileFormPro
       (formData.company || '') !== (profile?.company || '') ||
       JSON.stringify((formData.skills || []).sort()) !== JSON.stringify((profile?.skills || []).sort())
     )
+    
+    if (!hasChanges) {
+      setToast({ message: 'No changes to save', type: 'info' })
+      return
+    }
 
     try {
       setLoading(true)

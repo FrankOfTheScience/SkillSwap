@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import { User } from '../types';
 import api from '../services/api';
 import { DollarSign, Calendar, Star, Activity, TrendingUp } from 'lucide-react';
@@ -19,25 +18,102 @@ interface DashboardStats {
   totalBookingsAsProvider: number;
   completedBookingsAsCustomer: number;
   completedBookingsAsProvider: number;
-  recentActivity: any[];
-  upcomingAppointments: any[];
+  recentActivity: Array<{
+    id: string;
+    type: string;
+    description: string;
+    timestamp: string;
+  }>;
+  upcomingAppointments: Array<{
+    id: string;
+    title: string;
+    date: string;
+    time: string;
+  }>;
   lastUpdated: string;
 }
 
 interface UserDashboardProps {
   user: User;
-  onViewBookings?: () => void;
 }
 
-export default function UserDashboard({ user, onViewBookings }: UserDashboardProps) {
+export default function UserDashboard({ user }: UserDashboardProps) {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const connectionRef = useRef<signalR.HubConnection | null>(null);
-  const router = useRouter();
 
   useEffect(() => {
-    initializeSignalR();
+    const initializeConnection = async () => {
+      if (!user) return;
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Get auth token
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setError('Authentication required');
+          setLoading(false);
+          return;
+        }
+
+        // Create SignalR connection
+        const connection = new signalR.HubConnectionBuilder()
+          .withUrl(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5095'}/hubs/dashboard`, {
+            accessTokenFactory: () => token,
+          })
+          .withAutomaticReconnect()
+          .build();
+
+        connectionRef.current = connection;
+
+        // Handle user stats updates
+        connection.on('UserStatsUpdate', (userStats: Record<string, unknown>) => {
+          console.log('Received user stats:', userStats);
+          
+          // Map the backend response to our frontend interface
+          const mappedStats: DashboardStats = {
+            profileCompletion: Number(userStats.ProfileCompletion || userStats.profileCompletion) || 0,
+            totalOffers: Number(userStats.TotalOffers || userStats.totalOffers) || 0,
+            activeOffers: Number(userStats.ActiveOffers || userStats.activeOffers) || 0,
+            totalEarnings: Number(userStats.TotalEarnings || userStats.totalEarnings) || 0,
+            monthlyEarnings: Number(userStats.MonthlyEarnings || userStats.monthlyEarnings) || 0,
+            totalSpending: Number(userStats.TotalSpending || userStats.totalSpending) || 0,
+            monthlySpending: Number(userStats.MonthlySpending || userStats.monthlySpending) || 0,
+            totalBookingsAsCustomer: Number(userStats.TotalBookingsAsCustomer || userStats.totalBookingsAsCustomer) || 0,
+            totalBookingsAsProvider: Number(userStats.TotalBookingsAsProvider || userStats.totalBookingsAsProvider) || 0,
+            completedBookingsAsCustomer: Number(userStats.CompletedBookingsAsCustomer || userStats.completedBookingsAsCustomer) || 0,
+            completedBookingsAsProvider: Number(userStats.CompletedBookingsAsProvider || userStats.completedBookingsAsProvider) || 0,
+            recentActivity: Array.isArray(userStats.RecentActivity || userStats.recentActivity) 
+              ? (userStats.RecentActivity || userStats.recentActivity) as Array<{id: string; type: string; description: string; timestamp: string}>
+              : [],
+            upcomingAppointments: Array.isArray(userStats.UpcomingAppointments || userStats.upcomingAppointments)
+              ? (userStats.UpcomingAppointments || userStats.upcomingAppointments) as Array<{id: string; title: string; date: string; time: string}>
+              : [],
+            lastUpdated: new Date().toISOString()
+          };
+          
+          setStats(mappedStats);
+          setLoading(false);
+        });
+
+        // Start connection
+        await connection.start();
+        console.log('Dashboard SignalR Connected');
+        
+        // Request initial stats
+        await connection.invoke('RequestUserStats');
+      } catch (error) {
+        console.error('Dashboard SignalR connection failed:', error);
+        setError('Failed to connect to dashboard');
+        setLoading(false);
+      }
+    };
+
+    initializeConnection();
+    
     return () => {
       if (connectionRef.current) {
         connectionRef.current.stop();
@@ -69,24 +145,28 @@ export default function UserDashboard({ user, onViewBookings }: UserDashboardPro
       connectionRef.current = connection;
 
       // Handle user stats updates
-      connection.on('UserStatsUpdate', (userStats: any) => {
+      connection.on('UserStatsUpdate', (userStats: Record<string, unknown>) => {
         console.log('Received user stats:', userStats);
         
         // Map the backend response to our frontend interface
         const mappedStats: DashboardStats = {
-          profileCompletion: userStats.ProfileCompletion || userStats.profileCompletion || 0,
-          totalOffers: userStats.TotalOffers || userStats.totalOffers || 0,
-          activeOffers: userStats.ActiveOffers || userStats.activeOffers || 0,
-          totalEarnings: userStats.TotalEarnings || userStats.totalEarnings || 0,
-          monthlyEarnings: userStats.MonthlyEarnings || userStats.monthlyEarnings || 0,
-          totalSpending: userStats.TotalSpending || userStats.totalSpending || 0,
-          monthlySpending: userStats.MonthlySpending || userStats.monthlySpending || 0,
-          totalBookingsAsCustomer: userStats.TotalBookingsAsCustomer || userStats.totalBookingsAsCustomer || 0,
-          totalBookingsAsProvider: userStats.TotalBookingsAsProvider || userStats.totalBookingsAsProvider || 0,
-          completedBookingsAsCustomer: userStats.CompletedBookingsAsCustomer || userStats.completedBookingsAsCustomer || 0,
-          completedBookingsAsProvider: userStats.CompletedBookingsAsProvider || userStats.completedBookingsAsProvider || 0,
-          recentActivity: userStats.RecentActivity || userStats.recentActivity || [],
-          upcomingAppointments: userStats.UpcomingAppointments || userStats.upcomingAppointments || [],
+          profileCompletion: Number(userStats.ProfileCompletion || userStats.profileCompletion) || 0,
+          totalOffers: Number(userStats.TotalOffers || userStats.totalOffers) || 0,
+          activeOffers: Number(userStats.ActiveOffers || userStats.activeOffers) || 0,
+          totalEarnings: Number(userStats.TotalEarnings || userStats.totalEarnings) || 0,
+          monthlyEarnings: Number(userStats.MonthlyEarnings || userStats.monthlyEarnings) || 0,
+          totalSpending: Number(userStats.TotalSpending || userStats.totalSpending) || 0,
+          monthlySpending: Number(userStats.MonthlySpending || userStats.monthlySpending) || 0,
+          totalBookingsAsCustomer: Number(userStats.TotalBookingsAsCustomer || userStats.totalBookingsAsCustomer) || 0,
+          totalBookingsAsProvider: Number(userStats.TotalBookingsAsProvider || userStats.totalBookingsAsProvider) || 0,
+          completedBookingsAsCustomer: Number(userStats.CompletedBookingsAsCustomer || userStats.completedBookingsAsCustomer) || 0,
+          completedBookingsAsProvider: Number(userStats.CompletedBookingsAsProvider || userStats.completedBookingsAsProvider) || 0,
+          recentActivity: Array.isArray(userStats.RecentActivity || userStats.recentActivity) 
+            ? (userStats.RecentActivity || userStats.recentActivity) as Array<{id: string; type: string; description: string; timestamp: string}>
+            : [],
+          upcomingAppointments: Array.isArray(userStats.UpcomingAppointments || userStats.upcomingAppointments)
+            ? (userStats.UpcomingAppointments || userStats.upcomingAppointments) as Array<{id: string; title: string; date: string; time: string}>
+            : [],
           lastUpdated: new Date().toISOString()
         };
         

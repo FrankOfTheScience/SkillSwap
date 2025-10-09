@@ -13,12 +13,12 @@ export default function ProfileCard({ user }: ProfileCardProps) {
   const [completion, setCompletion] = useState<ProfileCompletionResponse | null>(null)
   const [loading, setLoading] = useState(false)
 
-  // Skip profile completion for admin users
-  if (user.role === 'Admin') return null
-
   useEffect(() => {
+    // Skip profile completion for admin users
+    if (user.role === 'Admin') return
+    
     loadCompletion()
-  }, [])
+  }, [user.role])
 
   const loadCompletion = async () => {
     try {
@@ -54,6 +54,9 @@ export default function ProfileCard({ user }: ProfileCardProps) {
     if (percentage >= 50) return 'bg-yellow-500'
     return 'bg-red-500'
   }
+
+  // Skip profile completion for admin users
+  if (user.role === 'Admin') return null
 
   const percentage = completion?.percentage || user.profileCompletionPercentage || 0
 

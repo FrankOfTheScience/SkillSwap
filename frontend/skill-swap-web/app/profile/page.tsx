@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { ArrowLeft, Edit, User as UserIcon, Mail, MapPin, Briefcase, Clock, Star, BarChart3 } from 'lucide-react'
+import Image from 'next/image'
+import { ArrowLeft, Edit, User as UserIcon, Mail, MapPin, Briefcase, Clock, Star } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import ProfileForm from '../../components/ProfileForm'
 import UserDashboard from '../../components/UserDashboard'
@@ -15,7 +15,6 @@ import { User, Booking } from '../../types'
 import ErrorDisplay from '../../components/ErrorDisplay'
 
 export default function ProfilePage() {
-  const router = useRouter()
   const { user, loading: authLoading } = useAuth()
   const [profile, setProfile] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
@@ -53,13 +52,22 @@ export default function ProfilePage() {
     setIsEditing(false)
   }
 
-  const handleCancelBooking = async (bookingId: number) => {
+  const handleCancelBooking = async (bookingId: string) => {
     // For now, we need to find the booking by ID
     // In a real app, you might want to pass more data or fetch the booking details
     const mockBooking = { 
-      id: bookingId, 
+      id: bookingId,
+      offerId: 'mock-offer-id',
+      userId: 'mock-user-id',
+      status: 'Confirmed' as const,
+      amount: 0,
+      commissionAmount: 0,
+      createdAt: new Date().toISOString(),
+      scheduledDateTime: new Date().toISOString(),
+      durationInMinutes: 60,
+      isOnline: true,
       offer: { title: 'Selected Booking' } 
-    } as Booking;
+    } as unknown as Booking;
     
     setCancelConfirmModal({ booking: mockBooking, isOpen: true })
     setShowBookingsModal(false)
@@ -158,9 +166,11 @@ export default function ProfilePage() {
                   <div className="flex items-center space-x-4">
                     <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
                       {profile?.profileImageUrl ? (
-                        <img
+                        <Image
                           src={profile.profileImageUrl}
                           alt="Profile"
+                          width={80}
+                          height={80}
                           className="w-full h-full rounded-full object-cover"
                         />
                       ) : (
@@ -297,9 +307,8 @@ export default function ProfilePage() {
               {/* Dashboard Section */}
               {user && (
                 <div className="mt-8">
-                  <UserDashboard 
-                    user={user} 
-                    onViewBookings={() => setShowBookingsModal(true)}
+                  <UserDashboard
+                    user={user}
                   />
                 </div>
               )}

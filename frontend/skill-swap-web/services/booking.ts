@@ -65,7 +65,7 @@ export const getBooking = async (bookingId: number): Promise<Booking> => {
  * @param bookingId - The ID of the booking to cancel
  * @returns Promise with success confirmation
  */
-export const cancelBooking = async (bookingId: number): Promise<void> => {
+export const cancelBooking = async (bookingId: string): Promise<void> => {
   try {
     await api.patch(`/api/bookings/${bookingId}/cancel`);
   } catch (error) {

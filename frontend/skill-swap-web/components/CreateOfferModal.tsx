@@ -77,13 +77,13 @@ export default function CreateOfferModal({ isOpen, onClose, onSuccess }: CreateO
       if (err && typeof err === 'object' && 'response' in err) {
         const axiosError = err as { 
           response?: { 
-            data?: any; 
+            data?: unknown; 
             status?: number; 
             statusText?: string;
           }; 
           message?: string; 
-          request?: any;
-          config?: any;
+          request?: unknown;
+          config?: unknown;
         };
         
         console.error("Response status:", axiosError.response?.status);
@@ -95,23 +95,24 @@ export default function CreateOfferModal({ isOpen, onClose, onSuccess }: CreateO
         let errorMessage = "Failed to create offer";
         
         if (axiosError.response?.data) {
-          if (typeof axiosError.response.data === 'string') {
-            errorMessage = axiosError.response.data;
-          } else if (axiosError.response.data.message) {
-            errorMessage = axiosError.response.data.message;
-          } else if (axiosError.response.data.error) {
-            errorMessage = axiosError.response.data.error;
-          } else if (axiosError.response.data.errors) {
+          const responseData = axiosError.response.data as Record<string, unknown>;
+          if (typeof responseData === 'string') {
+            errorMessage = responseData;
+          } else if (typeof responseData?.message === 'string') {
+            errorMessage = responseData.message;
+          } else if (typeof responseData?.error === 'string') {
+            errorMessage = responseData.error;
+          } else if (responseData?.errors) {
             // Handle validation errors
-            if (Array.isArray(axiosError.response.data.errors)) {
-              errorMessage = axiosError.response.data.errors.map((e: any) => 
-                e.errorMessage || e.message || e
+            if (Array.isArray(responseData.errors)) {
+              errorMessage = responseData.errors.map((e: {errorMessage?: string; message?: string} | string) => 
+                typeof e === 'string' ? e : e.errorMessage || e.message || 'Validation error'
               ).join(', ');
             } else {
               errorMessage = "Validation errors occurred";
             }
-          } else if (axiosError.response.data.title) {
-            errorMessage = axiosError.response.data.title;
+          } else if (typeof responseData?.title === 'string') {
+            errorMessage = responseData.title;
           }
         } else if (axiosError.response?.status === 401) {
           errorMessage = "Please log in to create an offer";

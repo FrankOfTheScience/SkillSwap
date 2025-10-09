@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { getCurrentUser } from "../services/auth";
-import { getUserBookings, cancelBooking } from "../services/booking";
+import { getUserBookings } from "../services/booking";
 import { Booking, User, BookingStatus } from "../types";
 import BookingCard from "./BookingCard";
 import ModalWrapper from "./ModalWrapper";
@@ -9,8 +9,8 @@ import ModalWrapper from "./ModalWrapper";
 interface MyBookingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onViewOffer?: (offerId: number) => void;
-  onCancelBooking?: (bookingId: number) => void;
+  onViewOffer?: (offerId: string) => void;
+  onCancelBooking?: (bookingId: string) => void;
 }
 
 export default function MyBookingsModal({ isOpen, onClose, onViewOffer, onCancelBooking }: MyBookingsModalProps) {

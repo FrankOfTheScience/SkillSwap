@@ -48,7 +48,7 @@ export const deleteAvailability = async (availabilityId: number): Promise<void> 
 }
 
 export const getAvailableSlots = async (
-  offerId: number, 
+  offerId: string, 
   startDate: string, 
   endDate: string
 ): Promise<AvailableSlot[]> => {

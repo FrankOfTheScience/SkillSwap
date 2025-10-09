@@ -11,8 +11,8 @@ import Toast, { useToast } from "./Toast";
 
 interface OfferListProps {
   user: User | null;
-  onViewOffer?: (offerId: number) => void;
-  onEditOffer?: (offerId: number) => void;
+  onViewOffer?: (offerId: string) => void;
+  onEditOffer?: (offerId: string) => void;
   refreshTrigger?: number; // Add a refresh trigger prop
 }
 
@@ -63,8 +63,8 @@ export default function OfferList({ user, onViewOffer, onEditOffer, refreshTrigg
   const [sortDescending, setSortDescending] = useState(false);
   
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [bookingLoading, setBookingLoading] = useState<Record<number, boolean>>({});
-  const [bookingError, setBookingError] = useState<Record<number, string>>({});
+  const [bookingLoading, setBookingLoading] = useState<Record<string, boolean>>({});
+  const [bookingError, setBookingError] = useState<Record<string, string>>({});
   const { toast, showToast, hideToast } = useToast();
   
   const [deleteModal, setDeleteModal] = useState<{isOpen: boolean, offer: Offer | null}>({

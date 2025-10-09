@@ -37,7 +37,7 @@ function HomePage() {
     booking: {} as Booking, 
     isOpen: false 
   });
-  const [selectedOfferId, setSelectedOfferId] = useState<number | null>(null);
+  const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
   const [cameFromMyBookings, setCameFromMyBookings] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -103,7 +103,7 @@ function HomePage() {
     router.replace("/?showModal=login", { scroll: false });
   };
 
-  const handleViewOffer = (offerId: number) => {
+  const handleViewOffer = (offerId: string) => {
     setSelectedOfferId(offerId);
     setShowViewOfferModal(true);
     // Check if MyBookings modal is open
@@ -113,7 +113,7 @@ function HomePage() {
     }
   };
 
-  const handleEditOffer = (offerId: number) => {
+  const handleEditOffer = (offerId: string) => {
     setSelectedOfferId(offerId);
     setShowEditOfferModal(true);
     setShowViewOfferModal(false);
@@ -153,13 +153,22 @@ function HomePage() {
     setCameFromMyBookings(false);
   };
 
-  const handleCancelBooking = async (bookingId: number) => {
+  const handleCancelBooking = async (bookingId: string) => {
     // For now, we need to find the booking by ID
     // In a real app, you might want to pass more data or fetch the booking details
     const mockBooking = { 
       id: bookingId, 
+      offerId: 'mock-offer-id',
+      userId: 'mock-user-id',
+      status: 'Confirmed' as const,
+      amount: 0,
+      commissionAmount: 0,
+      createdAt: new Date().toISOString(),
+      scheduledDateTime: new Date().toISOString(),
+      durationInMinutes: 60,
+      isOnline: true,
       offer: { title: 'Selected Booking' } 
-    } as Booking;
+    } as unknown as Booking;
     
     setCancelConfirmModal({ booking: mockBooking, isOpen: true })
     setShowMyBookingsModal(false)

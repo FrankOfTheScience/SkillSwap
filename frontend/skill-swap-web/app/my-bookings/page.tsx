@@ -15,7 +15,7 @@ export default function MyBookingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [cancelModal, setCancelModal] = useState<number | null>(null);
+  const [cancelModal, setCancelModal] = useState<string | null>(null);
 
   const router = useRouter();
 
@@ -49,7 +49,7 @@ export default function MyBookingsPage() {
     fetchBookings();
   }, [user, page]);
 
-  const handleCancelBooking = async (bookingId: number) => {
+  const handleCancelBooking = async (bookingId: string) => {
     try {
       await cancelBooking(bookingId);
       

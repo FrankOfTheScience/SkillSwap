@@ -4,9 +4,9 @@ import { Booking, BookingStatus } from "../types";
 
 interface BookingCardProps {
   booking: Booking;
-  onCancel?: (bookingId: number) => void;
+  onCancel?: (bookingId: string) => void;
   showActions?: boolean;
-  onViewOffer?: (offerId: number) => void;
+  onViewOffer?: (offerId: string) => void;
 }
 
 export default function BookingCard({ 
